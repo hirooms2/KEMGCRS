@@ -415,9 +415,9 @@ def save_data_sample(args, labeled_dataset, mode='test'):
         for dialog in labeled_dataset:
             cands={
                 'predicted_goal':dialog['predicted_goal'], 
-                'predicted_goal_confidence':str(dialog['predicted_goal_confidence']),
+                'predicted_goal_confidence':  [i.item() for i in dialog['predicted_goal_confidence']],
                 'predicted_topic':dialog['predicted_topic'],
-                'predicted_topic_confidence':str(dialog['predicted_topic_confidence']),
+                'predicted_topic_confidence': [i.item() for i in dialog['predicted_topic_confidence']],
                    }
             fw.write(json.dumps(cands) + "\n")
 

@@ -200,6 +200,21 @@ def process_augment_sample(raw_data, tokenizer=None, knowledgeDB=None, goal_list
     logger.info(f"Aug Sample count: {len(train_sample)}, Goal list: {goal_list}")
     return train_sample
 
+def read_pred_json_lines(dataset, data_path):
+    with open(data_path, 'r', encoding='utf-8') as f:
+        for idx, le in tqdm(enumerate(f), desc="READ_Pred", bar_format='{l_bar} | {bar:23} {r_bar}'):
+            preds = json.loads(le)
+            for k,v in preds.items():
+                dataset[idx][k] = v
+    return dataset
+
+def eval_pred_loads(dataset, task='goal'):
+    cnt=[]
+    for data in dataset:
+        if task=='know': cnt.append(data['target_knowledge']==data[f'candidate_knowledges'][0])
+        else: cnt.append(data[task]==data[f'predicted_{task}'][0])
+    logger.info(f"{task} predicted hit@1-ratio: {sum(cnt)/len(cnt):.3f}")
+    return round(sum(cnt)/len(cnt), 3)
 
 def dataset_reader(args, data_name='train', dataset=None):
     all_knowledge = set()

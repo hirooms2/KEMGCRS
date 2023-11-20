@@ -33,6 +33,8 @@ def add_ours_specific_args(parser):
     ## For know
     parser.add_argument("--know_item_select", default='conf', type=str, help="item selector use conf or topk", choices=['conf', 'top'])
     parser.add_argument("--cotmae", action='store_true', help="Initialize the retriever from pretrained CoTMAE")
+    parser.add_argument("--pseudo_labeler", default='bm25', type=str, help="Pseudo_labeler (dpr, cotmae, bm25, contriever)")
+    parser.add_argument("--goal_topic_load", default='794', type=str, help="Predicted goal_topic_saved")
 
     ## For resp
     parser.add_argument("--rag_batch_size", type=int, default=4, help=" Method ")
@@ -214,6 +216,8 @@ def main(args=None):
         pass
 
     if 'know' in args.task:
+        # Get Goal, Topic, Pseudo_label
+
         train_know_retrieve.train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
 
         # If you train retriever, predicted top-5 knowledges will augmented and save in pkl

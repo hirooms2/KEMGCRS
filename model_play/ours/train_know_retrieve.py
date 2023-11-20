@@ -6,7 +6,7 @@ from torch import optim
 from transformers import AutoConfig, AutoTokenizer, AutoModel
 
 from data_model_know import KnowledgeDataset, DialogDataset
-from data_utils import process_augment_sample
+from data_utils import process_augment_sample, read_pred_json_lines,eval_pred_loads
 from model_play.ours.eval_know_retrieve import knowledge_reindexing, eval_know  #### Check
 # from models.ours.cotmae import BertForCotMAE
 from utils import *
@@ -50,25 +50,30 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     train_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'train_pred_aug_dataset.pkl')) # Topic 0.793
     test_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'test_pred_aug_dataset.pkl'))
     
-    # train_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', f'train_pred_aug_dataset.pkl')) # Topic 0.73
-    # test_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', f'test_pred_aug_dataset.pkl'))
+    # Get predicted goal, topic
+    train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
+    test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
+    eval_pred_loads(test_dataset_pred_aug, task='topic')
+
+    # Get Pseudo label
+    logger.info(f" Get Pseudo Label {args.pseudo_labeler}")
+    train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
+    test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+    eval_pred_loads(test_dataset_pred_aug, task='know')
 
 
-    train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
-    for idx, data in enumerate(train_dataset):
-        data['predicted_goal'] = train_dataset_pred_aug[idx]['predicted_goal']
-        data['predicted_topic'] = train_dataset_pred_aug[idx]['predicted_topic']
-        data['predicted_topic_confidence'] = train_dataset_pred_aug[idx]['predicted_topic_confidence']
 
-    # test_dataset_pred_aug2 = read_pkl(os.path.join(args.data_dir, 'pred_aug', f'test_pred_aug_dataset_know.pkl'))
+    # train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
+    # for idx, data in enumerate(train_dataset):
+    #     data['predicted_goal'] = train_dataset_pred_aug[idx]['predicted_goal']
+    #     data['predicted_topic'] = train_dataset_pred_aug[idx]['predicted_topic']
+    #     data['predicted_topic_confidence'] = train_dataset_pred_aug[idx]['predicted_topic_confidence']
 
-    test_dataset_pred_aug = [data for data in test_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
-    for idx, data in enumerate(test_dataset):
-        data['predicted_goal'] = test_dataset_pred_aug[idx]['predicted_goal']
-        data['predicted_topic'] = test_dataset_pred_aug[idx]['predicted_topic']
-        data['predicted_topic_confidence'] = test_dataset_pred_aug[idx]['predicted_topic_confidence']
-
-    # test_dataset = read_pkl(os.path.join(args.data_dir, 'pred_aug', "gt_test_pred_aug_dataset.pkl"))
+    # test_dataset_pred_aug = [data for data in test_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
+    # for idx, data in enumerate(test_dataset):
+    #     data['predicted_goal'] = test_dataset_pred_aug[idx]['predicted_goal']
+    #     data['predicted_topic'] = test_dataset_pred_aug[idx]['predicted_topic']
+    #     data['predicted_topic_confidence'] = test_dataset_pred_aug[idx]['predicted_topic_confidence']
 
     if args.debug: train_dataset, test_dataset = train_dataset[:30], test_dataset[:30]
 
@@ -88,16 +93,6 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
 
     # eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
     # eval_know(args, test_dataloader_write, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
-
-    best_hit = [[], [], [], [], []]
-    best_hit_new = [[], [], [], [], []]
-
-    best_hit_movie = [[], [], [], [], []]
-    best_hit_poi = [[], [], [], [], []]
-    best_hit_music = [[], [], [], [], []]
-    best_hit_qa = [[], [], [], [], []]
-    best_hit_chat = [[], [], [], [], []]
-    best_hit_food = [[], [], [], [], []]
 
     eval_metric, best_output, best_epoch = [-1], None, 0
     result_path = f"{args.time}_{args.model_name}_result"
@@ -148,56 +143,10 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
         # hit1, hit3, hit5, hit10, hit20, hit_movie_result, hit_music_result, hit_qa_result, hit_poi_result, hit_food_result, hit_chat_result, hit1_new, hit3_new, hit5_new, hit10_new, hit20_new = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
         for i in output_str:
             logger.info(f"EPOCH_{epoch}: {i}")
-        # logger.info(f"Results\tEPOCH: {epoch}")
-        # logger.info("Overall\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (hit1, hit3, hit5, hit10, hit20))
-        # logger.info("Overall new knowledge\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (hit1_new, hit3_new, hit5_new, hit10_new, hit20_new))
 
-        # logger.info("Movie recommendation\t" + "\t".join(hit_movie_result))
-        # logger.info("Music recommendation\t" + "\t".join(hit_music_result))
-        # logger.info("Q&A\t" + "\t".join(hit_qa_result))
-        # logger.info("POI recommendation\t" + "\t".join(hit_poi_result))
-        # logger.info("Food recommendation\t" + "\t".join(hit_food_result))
-        # logger.info("Chat about stars\t" + "\t".join(hit_chat_result))
-
-        # if hit1 > eval_metric[0]:
-        #     eval_metric[0] = hit1
-        #     best_hit[0] = hit1
-        #     best_hit[1] = hit3
-        #     best_hit[2] = hit5
-        #     best_hit[3] = hit10
-        #     best_hit[4] = hit20
-        #     best_hit_new[0] = hit1_new
-        #     best_hit_new[1] = hit3_new
-        #     best_hit_new[2] = hit5_new
-        #     best_hit_new[3] = hit10_new
-        #     best_hit_new[4] = hit20_new
-        #     best_hit_movie = hit_movie_result
-        #     best_hit_poi = hit_poi_result
-        #     best_hit_music = hit_music_result
-        #     best_hit_qa = hit_qa_result
-        #     best_hit_chat = hit_chat_result
-        #     best_hit_food = hit_food_result
         if hitdic_ratio['total']['hit1'] >= eval_metric[0]:
             best_output = output_str
             best_epoch = epoch
             eval_metric[0] = hitdic_ratio['total']['hit1']
             torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_know.pt"))  # TIME_MODELNAME 형식
-    
-    # logger.info(f'BEST RESULT')
-    # logger.info(f"BEST Test Hit@1/3/5/10/20: {best_hit[0]:.3f}\t{best_hit[1]:.3f}\t{best_hit[2]:.3f}\t{best_hit[3]:.3f}\t{best_hit[4]:.3f}")
-
-    # logger.info("[BEST]")
-    # logger.info("Overall\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (best_hit[0], best_hit[1], best_hit[2], best_hit[3], best_hit[4]))
-    # logger.info("New\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (best_hit_new[0], best_hit_new[1], best_hit_new[2], best_hit_new[3], best_hit_new[4]))
-
-    # logger.info("Movie recommendation\t" + "\t".join(best_hit_movie))
-    # logger.info("Music recommendation\t" + "\t".join(best_hit_music))
-    # logger.info("QA\t" + "\t".join(best_hit_qa))
-    # logger.info("POI recommendation\t" + "\t".join(best_hit_poi))
-    # logger.info("Food recommendation\t" + "\t".join(best_hit_food))
-    # logger.info("Chat about stars\t" + "\t".join(best_hit_chat))
-
-    # logger.info("BEST") # Todo: epoch 0으로 하면 오류나서 일단 주석처리
-    # for i in best_output:
-    #     logger.info(f"BEST: {i}")
     eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
