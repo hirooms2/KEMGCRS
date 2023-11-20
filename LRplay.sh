@@ -1,12 +1,14 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
-python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794RG_topic_Top0_th --model_name=794RG_topic_Top0_th --topk_topic=0 --know_item_select=conf --train_ablation=RG --device=1
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794RG_T2Conf80_Psd_CotMAE --model_name=794RG_T2Conf80_Psd_CotMAE --topk_topic=2 --know_item_select=conf --topic_conf=0.8 --train_ablation=RG --device=0 --pseudo_labeler=cotmae
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794RG_T2Conf80_Psd_Contriever --model_name=794RG_T2Conf80_Psd_Contriever --topk_topic=2 --know_item_select=conf --topic_conf=0.8 --train_ablation=RG --device=0 --pseudo_labeler=contriever
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794RG_T2Conf80_Psd_DPR --model_name=794RG_T2Conf80_Psd_DPR --topk_topic=2 --know_item_select=conf --topic_conf=0.8 --train_ablation=RG --device=0 --pseudo_labeler=dpr
 
-#---------------------- 20231120 ----------------#
-# python pseudo_labeler.py --mode=train_dev_test --how=resp_uttr_item --gpu=0 --save --score_method=cot --log_name="cotmae_base_uncased"
-# python pseudo_labeler.py --mode=train_dev_test --how=resp_uttr_item --gpu=0 --save --score_method=dpr --log_name=PreTrainedDPR 
-# python pseudo_labeler.py --mode=train_dev_test --how=resp_uttr_item --gpu=0 --save --score_method=contriever  --log_name=contriever-msmarco 
+# ---------------------- 20231120 ----------------#
+python pseudo_labeler.py --mode=train_dev_test --how=resp_uttr_item --gpu=0 --save --score_method=cot --log_name="cotmae_base_uncased"
+python pseudo_labeler.py --mode=train_dev_test --how=resp_uttr_item --gpu=0 --save --score_method=dpr --log_name=PreTrainedDPR 
+python pseudo_labeler.py --mode=train_dev_test --how=resp_uttr_item --gpu=0 --save --score_method=contriever  --log_name=contriever-msmarco 
 
 # python pseudo_labeler.py --mode=test --how=resp_uttr_item --gpu=1 --save --score_method=cot --log_name="cotmae_base_msmarco_reranker"
 # python pseudo_labeler.py --mode=test --how=resp_uttr_item --gpu=1 --save --score_method=cot --log_name="cotmae_base_msmarco_retriever"

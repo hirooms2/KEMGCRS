@@ -78,22 +78,34 @@ def get_models(args):
 
 
 class Labeler:
-    def __init__(self, args, query_tokenizer, query_model, doc_tokenizer, doc_model, knowledge_db_list):
+    def __init__(self, args, query_tokenizer, query_model, doc_tokenizer, doc_model, train_knowledges, all_knowledges):
         self.args = args
+        
         self.query_tokenizer=query_tokenizer
-        self.query_model = query_model.to(args.device)
+        self.query_model = query_model.eval().to(args.device)
         self.doc_tokenizer = doc_tokenizer
-        self.doc_model = doc_model.to(args.device)
-        self.knowledge_list = list(knowledge_db_list)
-        self.knowledge_dataloader = DataLoader(KnowledgeDataset(args, self.knowledge_list, doc_tokenizer), batch_size=64, shuffle=False)
-        self.knowledge_index = self.mk_passage_db()
+        self.doc_model = doc_model.eval().to(args.device)
+        
+        self.train_knowledge_list = list(train_knowledges)
+        self.all_knowledge_list = list(all_knowledges)
+        
+        self.train_knowledge_dataloader = DataLoader(KnowledgeDataset(args, self.train_knowledge_list, doc_tokenizer), batch_size=64, shuffle=False)
+        self.train_knowledge_index = self.mk_passage_db(mode='train')
+        
+        self.all_knowledge_dataloader = DataLoader(KnowledgeDataset(args, self.all_knowledge_list, doc_tokenizer), batch_size=64, shuffle=False)
+        self.all_knowledge_index = self.mk_passage_db()
+        self.knowledge_index={'train':self.train_knowledge_index, 'dev': self.all_knowledge_index, 'test': self.all_knowledge_index}
         self.labeled_dataset=None
+
+    def get_knowledge_dataloader(self, knowledge_list):
+        return DataLoader(KnowledgeDataset(self.args, knowledge_list, self.doc_tokenizer), batch_size=64, shuffle=False)
     
-    def mk_passage_db(self):
+    def mk_passage_db(self, mode='test'):
         knowledge_index=[]
+        dataloader = self.train_knowledge_dataloader if mode == 'train' else self.all_knowledge_dataloader
         with torch.no_grad():
             logger.info("Create KnowledgeDB Index")
-            for batch in tqdm(self.knowledge_dataloader, bar_format=' {l_bar} | {bar:23} {r_bar}'):
+            for batch in tqdm(dataloader, bar_format=' {l_bar} | {bar:23} {r_bar}'):
                 input_ids = batch[0].to(self.args.device)
                 attention_mask = batch[1].to(self.args.device)
                 if 'cont' in self.args.score_method.lower():
@@ -107,7 +119,7 @@ class Labeler:
             knowledge_index = torch.stack(knowledge_index, 0).to(self.args.device)
         return knowledge_index.transpose(1, 0).to('cpu')
     
-    def get_score(self, enhanced_response):
+    def get_score(self, enhanced_response, mode='test'):
         resp_toks=self.query_tokenizer(enhanced_response.lower(), return_tensors='pt').to(self.args.device)
         if 'cont' in self.args.score_method: # Contriever
             resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device))
@@ -116,12 +128,14 @@ class Labeler:
             # resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device)).last_hidden_state[:, 0, :]
         else: # DPR
             resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device)).pooler_output
-        logit = torch.matmul(resp_emb.to('cpu'), self.knowledge_index).squeeze(0) #
+        logit = torch.matmul(resp_emb.to('cpu'), self.knowledge_index[mode]).squeeze(0) #
         doc_scores = logit.detach().numpy()
         return doc_scores
     
     def mk_labeled_dataset(self, dialogs, mode):
         filtered_corpus = self.args.train_know_tokens if mode == 'train' else self.args.all_know_tokens
+        knowledgeDB= self.train_knowledge_list if mode == 'train' else self.all_knowledge_list
+        corpus = self.args.train_knowledges if mode == 'train' else self.args.all_knowledges
         dataset_psd=list()
         cnt=0
         for index in tqdm(range(len(dialogs)), desc=f"{mode.upper()}_Dataset Read", bar_format='{l_bar} | {bar:23} {r_bar}'):
@@ -152,15 +166,15 @@ class Labeler:
                 if know:
                     know = clean_join_triple(know)
                     enhanced_response = response
-                    doc_scores = self.get_score(enhanced_response)
+                    doc_scores = self.get_score(enhanced_response, mode)
                     sorted_rank = doc_scores.argsort()[::-1]
-                    top1000_retrieved = [self.knowledge_list[idx] for idx in sorted_rank[:1000]]
+                    top1000_retrieved = [knowledgeDB[idx] for idx in sorted_rank[:1000]]
                     for rank in range(len(top1000_retrieved)):
                         if topic not in top1000_retrieved[rank]:
                             doc_scores[sorted_rank[rank]] = -1
                     re_sorted_rank = doc_scores.argsort()[::-1]
 
-                    candidates_positive_triple = [self.args.all_knowledges[self.knowledge_list[idx]] for idx in re_sorted_rank[:20]]
+                    candidates_positive_triple = [corpus[knowledgeDB[idx]] for idx in re_sorted_rank[:20]]
                     canditates_postivie_probs = [doc_scores[idx].item() for idx in re_sorted_rank[:20]] # [doc_scores[idx] for idx in re_sorted_rank[:20]]
 
                     know_candidates = []
@@ -506,7 +520,7 @@ def main_pseudo_labeled_dataset():
             del pool
     else:
         query_tokenizer, query_model, doc_tokenizer, doc_model = get_models(args)
-        labeler = Labeler(args, query_tokenizer, query_model, doc_tokenizer, doc_model, args.all_knowledges)
+        labeler = Labeler(args, query_tokenizer, query_model, doc_tokenizer, doc_model, args.train_knowledges, args.all_knowledges)
         if 'train' in args.mode: 
             results = labeler.mk_labeled_dataset(dialogs=train_dialogs, mode='train')
             Labeler.eval_dataset(results)

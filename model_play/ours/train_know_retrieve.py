@@ -47,12 +47,12 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     valid_dataset = process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB, goal_list=goal_list)
     test_dataset = process_augment_sample(test_dataset_raw, tokenizer, all_knowledgeDB, goal_list=goal_list)  # gold-topic
 
-    train_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'train_pred_aug_dataset.pkl')) # Topic 0.793
-    test_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'test_pred_aug_dataset.pkl'))
+    # train_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'train_pred_aug_dataset.pkl')) # Topic 0.793
+    # test_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'test_pred_aug_dataset.pkl'))
     
     # Get predicted goal, topic
-    train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
-    test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
+    train_dataset_pred_aug = read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
+    test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
     eval_pred_loads(test_dataset_pred_aug, task='topic')
 
     # Get Pseudo label
@@ -75,11 +75,11 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     #     data['predicted_topic'] = test_dataset_pred_aug[idx]['predicted_topic']
     #     data['predicted_topic_confidence'] = test_dataset_pred_aug[idx]['predicted_topic_confidence']
 
-    if args.debug: train_dataset, test_dataset = train_dataset[:30], test_dataset[:30]
+    if args.debug: train_dataset_pred_aug, test_dataset_pred_aug = train_dataset_pred_aug[:30], test_dataset_pred_aug[:30]
 
-    train_datamodel_know = DialogDataset(args, train_dataset, train_knowledgeDB, train_knowledgeDB, tokenizer, mode='train', task='know')
-    # valid_datamodel_know = DialogDataset(args, valid_dataset, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
-    test_datamodel_know = DialogDataset(args, test_dataset, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
+    train_datamodel_know = DialogDataset(args, train_dataset_pred_aug, train_knowledgeDB, train_knowledgeDB, tokenizer, mode='train', task='know')
+    # valid_datamodel_know = DialogDataset(args, valid_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
+    test_datamodel_know = DialogDataset(args, test_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
 
     train_dataloader = DataLoader(train_datamodel_know, batch_size=args.batch_size, shuffle=True)
     train_dataloader_retrieve = DataLoader(train_datamodel_know, batch_size=args.batch_size, shuffle=False)
