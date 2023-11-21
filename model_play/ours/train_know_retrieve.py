@@ -118,7 +118,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
 
             loss = 0
             # pseudo_confidences_mask = batch['pseudo_confidences']  # [B, K]
-            for idx in range(args.pseudo_pos_rank):
+            for idx in range(args.pseudo_pos_num):
                 # confidence = torch.softmax(pseudo_confidences[:, :idx + 1], dim=-1)
                    # g_logit = torch.sum(logit_pos[:, :idx + 1] * pseudo_confidences_mask[:, :idx + 1], dim=-1) / (torch.sum(pseudo_confidences_mask[:, :idx + 1], dim=-1) + 1e-20)
                 if args.train_ablation == 'CL':# Contrastive loss --> 이게 그냥인것
