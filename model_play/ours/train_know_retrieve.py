@@ -56,7 +56,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     eval_pred_loads(test_dataset_pred_aug, task='topic')
 
     # Get Pseudo label
-    logger.info(f" Get Pseudo Label {args.pseudo_labeler}")
+    logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
     train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     eval_pred_loads(test_dataset_pred_aug, task='know')
@@ -100,8 +100,8 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     for epoch in range(args.num_epochs):
         train_epoch_loss = 0
         num_update = 0
+        retriever.train()
         for batch in tqdm(train_dataloader, desc="Knowledge_Train", bar_format=' {l_bar} | {bar:23} {r_bar}'):
-            retriever.train()
             dialog_token = batch['input_ids']
             dialog_mask = batch['attention_mask']
             goal_idx = batch['goal_idx']

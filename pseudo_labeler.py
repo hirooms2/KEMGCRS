@@ -32,9 +32,9 @@ def get_models(args):
     # return query_tok, query_model, doc_tok, doc_model
     if 'cont' in args.score_method:
         from models.contriever.contriever import Contriever
-        args.model_name = 'facebook/contriever' # facebook/contriever-msmarco || facebook/mcontriever-msmarco
-        temp_plm_name = 'facebook/contriever-msmarco'
-        bert_model = Contriever.from_pretrained(args.model_name, cache_dir=os.path.join(args.home, "model_cache", temp_plm_name)).to(args.device).eval()
+        args.model_name = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
+        # temp_plm_name = 'facebook/contriever-msmarco'
+        bert_model = Contriever.from_pretrained(args.model_name, cache_dir=os.path.join(args.home, "model_cache", args.model_name)).to(args.device).eval()
         tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=os.path.join(args.home, "model_cache", args.model_name))
         return tokenizer, bert_model, tokenizer, bert_model
     elif "cot" in args.score_method.lower():
@@ -122,7 +122,10 @@ class Labeler:
     def get_score(self, enhanced_response, mode='test'):
         resp_toks=self.query_tokenizer(enhanced_response.lower(), return_tensors='pt').to(self.args.device)
         if 'cont' in self.args.score_method: # Contriever
-            resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device))
+            try:
+                resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device))
+            except:
+                resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device)).pooler_output
         elif 'cot' in self.args.score_method.lower():
             resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device)).pooler_output
             # resp_emb = self.query_model(input_ids = resp_toks.input_ids.to(self.args.device), attention_mask=resp_toks.attention_mask.to(self.args.device)).last_hidden_state[:, 0, :]
@@ -290,7 +293,8 @@ def make(args, mode, dialogs, start=0, end=0, m=None):
     cnt = 0
     filtered_corpus = args.train_know_tokens if mode == 'train' else args.all_know_tokens
     bm25 = BM25Okapi(filtered_corpus)
-    corpus = list(args.all_knowledges)
+    corpus = list(args.train_knowledges) if mode=='train' else list(args.all_knowledges)
+    knowledge_triple_list= args.train_knowledges if mode=='train' else args.all_knowledges
     dataset_psd = []
     for index in tqdm(range(start, end), desc=f"{mode.upper()}_Dataset Read", bar_format='{l_bar} | {bar:23} {r_bar}'):
         cnt += 1
@@ -339,7 +343,7 @@ def make(args, mode, dialogs, start=0, end=0, m=None):
                         # doc_scores[sorted_rank_tensor[rank]] = -1
                 re_sorted_rank = doc_scores.argsort()[::-1]
 
-                candidates_positive_triple = [args.all_knowledges[corpus[idx]] for idx in re_sorted_rank[:20]]
+                candidates_positive_triple = [knowledge_triple_list[corpus[idx]] for idx in re_sorted_rank[:20]]
                 canditates_postivie_probs = [doc_scores[idx] for idx in re_sorted_rank[:20]]
 
                 know_candidates = []
