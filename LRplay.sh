@@ -2,6 +2,7 @@
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
 python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAEOUR_GL2_Psd_BM25 --model_name=CotMAEOUR_GL2_Psd_BM25 --topk_topic=2 --know_item_select=conf --topic_conf=0.8 --train_ablation=RG --device=1 --pseudo_labeler=bm25 --pseudo_pos_num=2 --cotmae # Contriever로 initialize하고, 우리 idea 2개 다 적용
+python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_Psd_BM25 --model_name=CotMAE_CL_Psd_BM25 --topk_topic=0 --train_ablation=CL --device=0 --pseudo_labeler=bm25 --pseudo_pos_num=1 --cotmae # CotMAE에 DPR 방식 학습 (Top1이용, negative sampling)
 
 # ---------------------- 20231121 ----------------#
 

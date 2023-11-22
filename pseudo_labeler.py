@@ -42,23 +42,7 @@ def get_models(args):
         from transformers import AutoConfig
         logger.info("Initialize with pre-trained CoTMAE")
         model_name = 'caskcsg/cotmae_base_uncased'
-        # model_name = 'caskcsg/cotmae_base_msmarco_retriever'
-        # model_name = 'caskcsg/cotmae_base_msmarco_reranker'
         model_cache_dir = os.path.join(args.home, 'model_cache', 'cotmae', model_name)
-        # cotmae_config = AutoConfig.from_pretrained(model_cache_dir, cache_dir=model_cache_dir)
-        # cotmae_model = BertForCotMAE.from_pretrained(#OLD_KEMGCRS_HJOLD_230801
-        #     pretrained_model_name_or_path=model_cache_dir,
-        #     from_tf=bool(".ckpt" in model_cache_dir),
-        #     config=cotmae_config,
-        #     cache_dir=model_cache_dir,
-        #     use_decoder_head=True,
-        #     n_head_layers=2,
-        #     enable_head_mlm=True,
-        #     head_mlm_coef=1.0,)
-        # tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=os.path.join(args.home, "model_cache", args.model_name))
-        # cotmae_model.bert.resize_token_embeddings(len(tokenizer))
-        # bert_model = cotmae_model.bert.to(args.device).eval()
-        
         tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir = model_cache_dir)
         model = AutoModel.from_pretrained(model_name, cache_dir = model_cache_dir).to(args.device)
         
