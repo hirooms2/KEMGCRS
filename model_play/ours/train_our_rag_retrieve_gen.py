@@ -19,10 +19,10 @@ from models.ours.retriever import Retriever
 import utils
 import data_model
 from copy import deepcopy
+import data_utils
 
 
 def make_aug_gt_pred(args, bert_model, tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, valid_dataset_raw=None):
-    import data_utils
     import data_model
     from models.ours.retriever import Retriever
     from model_play.ours.train_bert_goal_topic import eval_goal_topic_model
@@ -30,7 +30,7 @@ def make_aug_gt_pred(args, bert_model, tokenizer, train_dataset_raw, test_datase
     train_dataset = data_utils.process_augment_sample(train_dataset_raw, tokenizer, train_knowledgeDB)  ##11621
     test_dataset = data_utils.process_augment_sample(test_dataset_raw, tokenizer, all_knowledgeDB)  ## 3711
     if valid_dataset_raw: valid_dataset = data_utils.process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB)  ## 1659
-
+    
     retriever = Retriever(args, bert_model)  # eval_goal_topic_model 함수에서 goal, topic load해서 쓸것임
     retriever.to(args.device)
     train_datamodel_topic = data_model.GenerationDataset(args, train_dataset, train_knowledgeDB, tokenizer, mode='train', subtask=args.subtask)
@@ -75,18 +75,35 @@ def make_know_pred(args, our_best_model, tokenizer, aug_Dataset, knowledge_index
 
 
 def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB):
-    logger.info(f"\n\nOUR {args.rag_our_model}BERT_Retriever model For resp, RAG_OUR_BERT: {args.rag_our_bert}, RAG_OnlyDecoderTune: {args.rag_onlyDecoderTune}\n\n")
-    train_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'train_pred_aug_dataset.pkl'))
-    valid_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'valid_pred_aug_dataset.pkl'))
-    test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'test_pred_aug_dataset.pkl'))
+    logger.info(f"\n\nOUR {args.rag_our_model}BERT_Retriever model For resp, RAG_OUR_Model: {args.rag_our_model}, RAG_OnlyDecoderTune: {args.rag_onlyDecoderTune}\n\n")
+    tokenizer.add_special_tokens({'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>']}) # 'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>'],
+    train_dataset = data_utils.process_augment_sample(train_dataset_raw, tokenizer, train_knowledgeDB)
+    # valid_dataset = data_utils.process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB)
+    test_dataset = data_utils.process_augment_sample(test_dataset_raw, tokenizer, all_knowledgeDB)  # gold-topic
+    # Get predicted goal, topic
+    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
+    test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
+    data_utils.eval_pred_loads(test_dataset_pred_aug, task='topic')
+
+    # Get Pseudo label
+    logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
+    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
+    test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+    data_utils.eval_pred_loads(test_dataset_pred_aug, task='know')
+
+    train_dataset_aug_pred = train_dataset_pred_aug
+    test_dataset_aug_pred = test_dataset_pred_aug
+    # train_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'train_pred_aug_dataset.pkl'))
+    # valid_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'valid_pred_aug_dataset.pkl'))
+    # test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'test_pred_aug_dataset.pkl'))
 
     logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:50], test_dataset_aug_pred[:50]
-
+    bert_model.resize_token_embeddings(len(tokenizer)) # CotMAE, Contriever, DPR: 30522, OURS: 30527 
     our_best_model = Retriever(args, bert_model)
-    # if args.rag_our_model.upper() == 'C2DPR':
-    #     our_best_model.load_state_dict(torch.load(os.path.join(args.saved_model_path, f"RGL2_topic5_conf60.pt"), map_location=args.device), strict=False)
-    # else: pass
+    if args.rag_our_model.upper() == 'C2DPR':
+        our_best_model.load_state_dict(torch.load(os.path.join(args.saved_model_path, f"{args.model_name}.pt"), map_location=args.device), strict=False)
+    else: pass
     our_best_model.to(args.device)
     our_question_encoder = deepcopy(our_best_model.query_bert)
     our_ctx_encoder = deepcopy(our_best_model.rerank_bert)
@@ -103,11 +120,10 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     faiss_dataset = faiss_dataset.map(split_documents, batched=True, num_proc=4)
 
     MODEL_CACHE_DIR = os.path.join(args.home, 'model_cache', 'facebook/dpr-ctx_encoder-multiset-base')
-
     ctx_encoder = DPRContextEncoder.from_pretrained("facebook/dpr-ctx_encoder-multiset-base", cache_dir=MODEL_CACHE_DIR).to(device=args.device)
     ctx_tokenizer = DPRContextEncoderTokenizerFast.from_pretrained("facebook/dpr-ctx_encoder-multiset-base", cache_dir=MODEL_CACHE_DIR)
 
-    if args.rag_our_bert:
+    if args.rag_our_model:
         logger.info("@@@@@@@@@@@@@@@@@@@@@@@@@@@ Use Our Trained Bert For ctx_encoder @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n")
         ctx_encoder.ctx_encoder.bert_model = our_ctx_encoder
         ctx_tokenizer = tokenizer
@@ -134,29 +150,30 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     rag_model = RagTokenForGeneration.from_pretrained("facebook/rag-token-nq", retriever=retriever).to(args.device)
     rag_tokenizer = AutoTokenizer.from_pretrained("facebook/rag-token-nq")
     rag_model.set_context_encoder_for_training(ctx_encoder)
-    if args.rag_our_bert:
+    if args.rag_our_model:
         logger.info("@@@@@@@@@@@@@@@@@@@@@@@@@@ Model question_encoder changed by ours @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n")
         rag_model.rag.question_encoder.question_encoder.bert_model = our_question_encoder
         rag_tokenizer.question_encoder = tokenizer
 
     train_Dataset = data_model.RagDataset(args, train_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='train')
-    valid_Dataset = data_model.RagDataset(args, valid_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='valid')
+    # valid_Dataset = data_model.RagDataset(args, valid_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='valid')
     test_Dataset = data_model.RagDataset(args, test_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='test')
-    if args.rag_our_bert or args.rag_our_model:
-        # from data_model_know import KnowledgeDataset
-        # from model_play.ours.eval_know_retrieve import knowledge_reindexing
-        # knowledge_data = KnowledgeDataset(args, all_knowledgeDB, tokenizer)  # KTH: FOR RETRIEVE
-        # knowledge_index_rerank = knowledge_reindexing(args, knowledge_data, our_best_model, stage='rerank')  # KTH: FOR RETRIEVE
-        # knowledge_index_rerank = knowledge_index_rerank.to(args.device)  # KTH: FOR RETRIEVE
-        # know_aug_train_dataset = make_know_pred(args, our_best_model, tokenizer, train_Dataset, knowledge_index_rerank, all_knowledgeDB)
+    if args.rag_our_model or args.rag_our_model:
+        from data_model_know import KnowledgeDataset
+        from model_play.ours.eval_know_retrieve import knowledge_reindexing
+        knowledge_data = KnowledgeDataset(args, all_knowledgeDB, tokenizer)  # KTH: FOR RETRIEVE
+        knowledge_index_rerank = knowledge_reindexing(args, knowledge_data, our_best_model, stage='rerank')  # KTH: FOR RETRIEVE
+        knowledge_index_rerank = knowledge_index_rerank.to(args.device)  # KTH: FOR RETRIEVE
+        know_aug_train_dataset = make_know_pred(args, our_best_model, tokenizer, train_Dataset, knowledge_index_rerank, all_knowledgeDB)
         # know_aug_valid_dataset = make_know_pred(args, our_best_model, tokenizer, valid_Dataset, knowledge_index_rerank, all_knowledgeDB)
-        # know_aug_test_dataset = make_know_pred(args, our_best_model, tokenizer, test_Dataset, knowledge_index_rerank, all_knowledgeDB)
-        # train_Dataset = Rag_context_Dataset(args, know_aug_train_dataset, rag_tokenizer, all_knowledgeDB, mode='train')
+        know_aug_test_dataset = make_know_pred(args, our_best_model, tokenizer, test_Dataset, knowledge_index_rerank, all_knowledgeDB)
+        train_Dataset = Rag_context_Dataset(args, know_aug_train_dataset, rag_tokenizer, all_knowledgeDB, mode='train')
         # valid_Dataset = Rag_context_Dataset(args, know_aug_valid_dataset, rag_tokenizer, all_knowledgeDB, mode='test')
-        # test_Dataset = Rag_context_Dataset(args, know_aug_test_dataset, rag_tokenizer, all_knowledgeDB, mode='test')
-        # logger.info(f"Dataset Knowledge Augmented Finish")
+        test_Dataset = Rag_context_Dataset(args, know_aug_test_dataset, rag_tokenizer, all_knowledgeDB, mode='test')
+        logger.info(f"Dataset Knowledge Augmented Finish")
+        
         train_Dataset = Rag_context_Dataset(args, train_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='train')
-        valid_Dataset = Rag_context_Dataset(args, valid_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='test')
+        # valid_Dataset = Rag_context_Dataset(args, valid_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='test')
         test_Dataset = Rag_context_Dataset(args, test_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='test')
         logger.info(f"Dataset Knowledge Augmented !")
 
@@ -172,7 +189,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     for epoch in range(args.rag_epochs):
         logger.info(f"RAG_LR: {args.rag_lr}")
         rag_model.train()
-        if args.rag_onlyDecoderTune or (args.rag_our_bert or args.rag_our_model):
+        if args.rag_onlyDecoderTune or (args.rag_our_model or args.rag_our_model):
             logger.info(f"\n\n*****RAG_Only_Decoder Tune!***** rag_lr: {args.rag_lr}");
             logger.info(f"*****RAG_Only_Decoder Tune!***** rag_lr: {args.rag_lr}\n\n")
             rag_model.eval()
@@ -186,14 +203,14 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
         if epoch == 0: rag_model_weight_logging(args, rag_model, epoch, 'before_train', faiss_dataset)
 
         if not args.debug:  # DEBUG일땐 TRAIN 무시하자 (230911)
-            if args.rag_our_bert or args.rag_our_model:
+            if args.rag_our_model or args.rag_our_model:
                 hitDic, hitdic_ratio, output_str = epoch_play_by_context_input_ids(args, rag_tokenizer, rag_model, train_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='train')
             else:
                 hitDic, hitdic_ratio, output_str = epoch_play(args, rag_tokenizer, rag_model, train_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='train')
 
         rag_model.eval()
         with torch.no_grad():
-            if args.rag_our_bert or args.rag_our_model:
+            if args.rag_our_model or args.rag_our_model:
                 hitDic, hitdic_ratio, output_str = epoch_play_by_context_input_ids(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
             else:
                 hitDic, hitdic_ratio, output_str = epoch_play(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
@@ -377,7 +394,7 @@ def rag_model_weight_logging(args, model, epoch, mode, faiss_dataset):
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
     with open(weight_log_file, 'a', encoding='utf-8') as f:
         f.write(f"\n{args.log_name}\n")
-        f.write(f"\n only decoder tune: {args.rag_onlyDecoderTune} // rag_our_bert: {args.rag_our_bert}\n")
+        f.write(f"\n only decoder tune: {args.rag_onlyDecoderTune} // rag_our_model: {args.rag_our_model}\n")
         f.write(f"{epoch}_{mode}\n")
         f.write(f"model.question_encoder.training: {model.question_encoder.training}\n")
         f.write(f"model.generator.training: {model.generator.training}\n")
@@ -656,7 +673,7 @@ class Rag_context_Dataset(Dataset):
         labels = self.tokenizer.generator(response, max_length=self.target_max_length, padding='max_length', truncation=True)['input_ids']
 
         ## Context_input_ids 사용하기 Start ##
-        if self.args.rag_our_bert:
+        if self.args.rag_our_model:
             gen_pad_id = self.tokenizer.generator.pad_token_id
             top5_knows, top5_confs = data['predicted_know'], data['predicted_know_confidence']  # candidate_knowledges[:5], candidate_knowledges[:5]]
             context_batch['context_input_ids'] = []

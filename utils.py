@@ -102,7 +102,7 @@ def default_parser(parser):
     parser.add_argument('--gpt_name', default='gpt2', type=str, help="BERT Model Name")
 
     parser.add_argument('--model_name', default='ours', type=str, help="BERT Model Name")
-
+    
     parser.add_argument('--max_prefix_length', default=30, type=int, help="dataset name")
     parser.add_argument('--max_gen_length', default=30, type=int, help="dataset name")
 
@@ -131,7 +131,7 @@ def default_parser(parser):
     parser.add_argument('--version', default='2', type=str, help="DuRec Version")  # HJ: log file name
     parser.add_argument("--debug", action='store_true', help="Whether to run debug.")  # HJ
 
-    parser.add_argument('--input_prompt', default='dialog_topic_profile', type=str, help="input_prompt")
+    parser.add_argument('--input_prompt', default='dialog_topic', type=str, help="input_prompt_, 추가적으로 profile도 해보긴했음")
 
     # Default For Goal-Topic task
 

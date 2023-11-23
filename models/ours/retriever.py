@@ -26,7 +26,7 @@ class Retriever(nn.Module):
     def get_dialog_emb(self, bert_output):
         if self.args.contriever: return bert_output.last_hidden_state[:, 0, :]
         elif self.args.cotmae: return bert_output.last_hidden_state[:, 0, :]
-        else : return bert_output.pooler_output
+        else : return bert_output.last_hidden_state[:, 0, :]
 
     def forward(self, input_ids, attention_mask):
         # dialog_emb = self.query_bert(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state[:, 0, :]  # [B, d]

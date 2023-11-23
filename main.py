@@ -50,8 +50,8 @@ def add_ours_specific_args(parser):
     parser.add_argument("--rag_onlyDecoderTune", action='store_true', help="rag decoder를 쓸 때, retriever부분 freeze하도록 세팅")
     parser.add_argument("--rag_ctx_training", action='store_true', help="rag 의 ctx_encoder또한 학습시킬지 말지 (scratch에서 사용)")
 
-    parser.add_argument("--rag_our_bert", action='store_true', help="우리의 retriever모델을 쓸지 말지")
-    parser.add_argument("--rag_our_model", default='c2dpr', type=str, help="rag_our_version_bert", choices=['', 'DPR', 'C2DPR', 'dpr', 'c2dpr'])
+    # parser.add_argument("--rag_our_bert", action='store_true', help="우리의 retriever모델을 쓸지 말지")
+    parser.add_argument("--rag_our_model", default='', type=str, help="rag_our_version_bert", choices=['', 'DPR', 'C2DPR', 'dpr', 'c2dpr', 'contriever', 'cotmae'])
 
     parser.add_argument("--rag_context_input_length", type=int, default=256, help=" Method ")
     parser.add_argument("--rag_n_docs", type=int, default=5, help=" RAG context_ids 로 gen할 때 사용할 passage 개수 ")
