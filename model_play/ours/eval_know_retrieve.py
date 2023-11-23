@@ -37,6 +37,71 @@ def knowledge_reindexing(args, knowledge_data, retriever, stage):
     knowledge_index = torch.stack(knowledge_index, 0)
     return knowledge_index
 
+def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer):
+    from data_utils import process_augment_sample, read_pred_json_lines, eval_pred_loads, save_pred_json_lines
+    from data_model_know import KnowledgeDataset, DialogDataset
+    from models.ours.retriever import Retriever
+    from json import dumps
+    from transformers import AutoTokenizer, AutoModel
+    
+
+    if args.contriever or 'cont' in args.model_name:
+        from models.contriever.contriever import Contriever
+        # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
+        args.contriever = 'facebook/contriever-msmarco'
+        bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
+        tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
+    elif args.cotmae or 'cont' in args.model_name: 
+        model_name = 'caskcsg/cotmae_base_uncased'
+        tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
+        bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
+    elif 'dpr' in args.model_name: 
+        tokenizer.add_special_tokens({'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>']})
+        bert_model.resize_token_embeddings(len(tokenizer))
+        pass
+    
+    # train_dataset_raw, valid_dataset_raw = split_validation(train_dataset_raw, args.train_ratio)
+    train_dataset = process_augment_sample(train_dataset_raw, tokenizer, train_knowledgeDB)
+    valid_dataset = process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB)
+    test_dataset = process_augment_sample(test_dataset_raw, tokenizer, all_knowledgeDB)  # gold-topic
+
+    # Get predicted goal, topic
+    train_dataset_pred_aug = read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
+    test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
+    eval_pred_loads(test_dataset_pred_aug, task='topic')
+
+    # Get Pseudo label
+    logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
+    train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
+    test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+    eval_pred_loads(test_dataset_pred_aug, task='know')
+
+    if args.debug: train_dataset_pred_aug, test_dataset_pred_aug = train_dataset_pred_aug[:30], test_dataset_pred_aug[:30]
+
+    train_datamodel_know = DialogDataset(args, train_dataset_pred_aug, train_knowledgeDB, train_knowledgeDB, tokenizer, mode='train', task='know')
+    # valid_datamodel_know = DialogDataset(args, valid_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
+    test_datamodel_know = DialogDataset(args, test_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
+
+    train_dataloader_retrieve = DataLoader(train_datamodel_know, batch_size=args.batch_size, shuffle=False)
+    test_dataloader_retrieve = DataLoader(test_datamodel_know, batch_size=args.batch_size, shuffle=False)
+
+
+    retriever = Retriever(args, bert_model)
+    retriever.load_state_dict(torch.load(f"{args.saved_model_path}/{args.model_name}_know.pt", map_location='cuda:0'), strict=False)
+    with torch.no_grad():
+        retriever.to(args.device)
+        hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
+        save_pred_know_json(os.path.join(args.output_dir, f"en_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
+        hitdic_ratio, test_output_str, test_top10_cand_knows, test_top10_cand_knows_conf = eval_know(args, test_dataloader_retrieve, retriever, all_knowledgeDB, tokenizer, data_type='test')
+        save_pred_know_json(os.path.join(args.output_dir, f"en_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
+    for i in test_output_str:
+        logger.info(f"{args.model_name}: {i}")
+    
+def save_pred_know_json(data_path, top10_cand_knows, top10_cand_knows_conf):
+    from json import dumps
+    with open(data_path, 'a', encoding='utf8') as fw:
+        for k,c in zip(top10_cand_knows, top10_cand_knows_conf):
+            fw.write(dumps({'predicted_know' : k[:5],'predicted_know_conf' : c[:5]}) + "\n")
 
 def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=None, retrieve=None, data_type='test'):
     logger.info(args.stage)
@@ -67,7 +132,7 @@ def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=No
     current = 0
     topic_lens = []
     contexts, responses, g_goals, g_topics, is_new_knows = [],[],[],[],[]
-    top10_cand_knows, target_knows=[],[]
+    top10_cand_knows, top10_cand_knows_conf, target_knows=[],[],[]
     for batch in tqdm(test_dataloader, desc="Knowledge_Test", bar_format=' {percentage:3.0f} % | {bar:23} {r_bar}'):  # TODO: Knowledge task 분리중
         batch_size = batch['attention_mask'].size(0)
         dialog_token = batch['input_ids']
@@ -112,6 +177,7 @@ def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=No
                      'candidate_topic_entities': candidate_topic, 'selected_topic':selected_topic,'rec_hit': rec_hit})
             # save_json(args, f"{args.time}_{args.model_name}_inout", jsonlineSave)
         top10_cand_knows.extend([[knowledgeDB[int(idx)] for idx in top10] for top10 in torch.topk(dot_score, k=10).indices])
+        top10_cand_knows_conf.extend([[float(j) for j in i] for i in torch.topk(dot_score, k=10).values])
         contexts.extend(tokenizer.batch_decode(dialog_token, skip_special_tokens=False))
         responses.extend(tokenizer.batch_decode(response, skip_special_tokens=False))
         is_new_knows.extend([idx.item() for idx in new_knowledge])
@@ -135,4 +201,4 @@ def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=No
 
     logger.info(f"avg topic: %.2f" % topic_len_avg)
 
-    return hitdic_ratio, output_str
+    return hitdic_ratio, output_str, top10_cand_knows, top10_cand_knows_conf

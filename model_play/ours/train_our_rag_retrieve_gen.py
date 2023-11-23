@@ -20,7 +20,7 @@ import utils
 import data_model
 from copy import deepcopy
 import data_utils
-
+from model_play.ours.eval_know_retrieve import eval_know
 
 def make_aug_gt_pred(args, bert_model, tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, valid_dataset_raw=None):
     import data_model
@@ -101,9 +101,15 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:50], test_dataset_aug_pred[:50]
     bert_model.resize_token_embeddings(len(tokenizer)) # CotMAE, Contriever, DPR: 30522, OURS: 30527 
     our_best_model = Retriever(args, bert_model)
-    if args.rag_our_model.upper() == 'C2DPR':
-        our_best_model.load_state_dict(torch.load(os.path.join(args.saved_model_path, f"{args.model_name}.pt"), map_location=args.device), strict=False)
+    if args.rag_our_model.upper() == 'C2DPR': # DPR, 
+        our_best_model.load_state_dict(torch.load(os.path.join(args.saved_model_path, f"{args.model_name}_know.pt"), map_location=args.device), strict=False)
     else: pass
+    
+    
+    
+    
+    
+    
     our_best_model.to(args.device)
     our_question_encoder = deepcopy(our_best_model.query_bert)
     our_ctx_encoder = deepcopy(our_best_model.rerank_bert)

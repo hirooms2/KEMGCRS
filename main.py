@@ -238,11 +238,26 @@ def main(args=None):
         # item_know_rq(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
 
     if 'rq' in args.task:
-        from model_play.ours.item_know_ref import item_know_rq
-        item_know_rq(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
-
+        # from model_play.ours.item_know_ref import item_know_rq
+        # item_know_rq(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+        # Knowledge Save
+        logger.info("aug,Load")
+        # retriever = Retriever(args, query_bert=bert_model)
+        if args.contriever or args.rag_our_model=='contriever': 
+            from models.contriever.contriever import Contriever
+            # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
+            args.contriever = 'facebook/contriever-msmarco'
+            bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
+            tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
+        elif args.cotmae or args.rag_our_model=='cotmae':
+            model_name = 'caskcsg/cotmae_base_uncased'
+            tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
+            bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
+        eval_know_retrieve.aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
+    
     if 'resp' in args.task:
         from model_play.ours import train_our_rag_retrieve_gen
+        
         train_our_rag_retrieve_gen.train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
 
     logger.info("THE END")

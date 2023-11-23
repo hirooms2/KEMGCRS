@@ -139,7 +139,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
 
         logger.info(f"Epoch: {epoch}\nTrain Loss: {train_epoch_loss}")
 
-        hitdic_ratio, output_str = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
+        hitdic_ratio, output_str, _, _ = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
         # hit1, hit3, hit5, hit10, hit20, hit_movie_result, hit_music_result, hit_qa_result, hit_poi_result, hit_food_result, hit_chat_result, hit1_new, hit3_new, hit5_new, hit10_new, hit20_new = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
         for i in output_str:
             logger.info(f"EPOCH_{epoch}: {i}")
