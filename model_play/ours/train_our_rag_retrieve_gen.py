@@ -85,11 +85,19 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
     data_utils.eval_pred_loads(test_dataset_pred_aug, task='topic')
 
+    # Get Predicted knowledges
+    logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
+    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'know', args.idea, args.knowledge_method, f'en_train_3711.txt'))
+    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir, 'know', args.idea, args.knowledge_method, f'en_test_3711.txt'))
+    # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
+    # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+    data_utils.eval_pred_loads(test_dataset_pred_aug, task='know')
+
     # Get Pseudo label
     logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
     train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
-    data_utils.eval_pred_loads(test_dataset_pred_aug, task='know')
+    data_utils.eval_pred_loads(test_dataset_pred_aug, task='label')
 
     train_dataset_aug_pred = train_dataset_pred_aug
     test_dataset_aug_pred = test_dataset_pred_aug

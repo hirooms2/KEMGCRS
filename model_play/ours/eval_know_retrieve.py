@@ -15,10 +15,7 @@ def knowledge_reindexing(args, knowledge_data, retriever, stage):
     # 모든 know_index를 버트에 태움
     logger.info('...knowledge indexing...(%s)' % stage)
     retriever.eval()
-    knowledgeDataLoader = DataLoader(
-        knowledge_data,
-        batch_size=args.batch_size
-    )
+    knowledgeDataLoader = DataLoader(knowledge_data, batch_size=args.batch_size)
     knowledge_index = []
 
     for batch in tqdm(knowledgeDataLoader, bar_format=' {l_bar} | {bar:23} {r_bar}'):
@@ -44,18 +41,18 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     from json import dumps
     from transformers import AutoTokenizer, AutoModel
     
-
-    if args.contriever or 'cont' in args.model_name:
+    logger.info(f"Model_Name: {args.model_name}")
+    if args.contriever or 'contriever' in args.model_name.lower():
         from models.contriever.contriever import Contriever
         # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
         args.contriever = 'facebook/contriever-msmarco'
         bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
         tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
-    elif args.cotmae or 'cont' in args.model_name: 
+    elif args.cotmae or 'cotmae' in args.model_name.lower(): 
         model_name = 'caskcsg/cotmae_base_uncased'
         tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
         bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
-    elif 'dpr' in args.model_name: 
+    elif 'RB_794RG_topic2' in args.model_name or 'dpr' in args.model_name.lower(): 
         tokenizer.add_special_tokens({'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>']})
         bert_model.resize_token_embeddings(len(tokenizer))
         pass
@@ -71,10 +68,12 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     eval_pred_loads(test_dataset_pred_aug, task='topic')
 
     # Get Pseudo label
-    logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
+    logger.info(f"Get Pseudo Label {args.pseudo_labeler.upper()}")
     train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     eval_pred_loads(test_dataset_pred_aug, task='know')
+
+    
 
     if args.debug: train_dataset_pred_aug, test_dataset_pred_aug = train_dataset_pred_aug[:30], test_dataset_pred_aug[:30]
 

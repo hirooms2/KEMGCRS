@@ -32,8 +32,14 @@ def add_ours_specific_args(parser):
 
     ## For know
     parser.add_argument("--know_item_select", default='conf', type=str, help="item selector use conf or topk", choices=['conf', 'top'])
+    
+    
+    parser.add_argument("--idea", type=str, default='1_2', help="Our Idea 적용 여부 (1: item selector, 2: groupwise loss)")
+    parser.add_argument("--knowledge_method", type=str, default="dpr", help = 'knowledge method: [dpr, contriever, cotmae]')
+    
     parser.add_argument("--cotmae", action='store_true', help="Initialize the retriever from pretrained CoTMAE")
     parser.add_argument("--contriever", action='store_true', help="Initialize the retriever from pretrained Contriever")
+
     parser.add_argument("--pseudo_labeler", default='bm25', type=str, help="Pseudo_labeler (dpr, cotmae, bm25, contriever)")
     # parser.add_argument("--goal_topic_load", default='794', type=str, help="Predicted goal_topic_saved")
 
@@ -228,31 +234,13 @@ def main(args=None):
             model_name = 'caskcsg/cotmae_base_uncased'
             tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
             bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
+        # elif args.dpr: pass
+
         train_know_retrieve.train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
 
-        # If you train retriever, predicted top-5 knowledges will augmented and save in pkl
-        # train_dataset_aug_pred = read_pkl(os.path.join(args.data_dir, 'pred_aug', f'gt_train_pred_aug_dataset.pkl'))
-        # valid_dataset_aug_pred = read_pkl(os.path.join(args.data_dir, 'pred_aug', f'gt_valid_pred_aug_dataset.pkl'))
-        # test_dataset_aug_pred  = read_pkl(os.path.join(args.data_dir, 'pred_aug', f'gt_test_pred_aug_dataset.pkl'))
-        # eval_know_retrieve.aug_pred_know(args, train_dataset_aug_pred, valid_dataset_aug_pred, test_dataset_aug_pred, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
-        # item_know_rq(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
-
-    if 'rq' in args.task:
-        # from model_play.ours.item_know_ref import item_know_rq
-        # item_know_rq(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+    if 'pred_k' in args.task:
         # Knowledge Save
         logger.info("aug,Load")
-        # retriever = Retriever(args, query_bert=bert_model)
-        if args.contriever or args.rag_our_model=='contriever': 
-            from models.contriever.contriever import Contriever
-            # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
-            args.contriever = 'facebook/contriever-msmarco'
-            bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
-            tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
-        elif args.cotmae or args.rag_our_model=='cotmae':
-            model_name = 'caskcsg/cotmae_base_uncased'
-            tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
-            bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
         eval_know_retrieve.aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
     
     if 'resp' in args.task:
