@@ -2,8 +2,8 @@ import json
 from nltk import ngrams
 from nltk.translate.bleu_score import sentence_bleu
 from collections import defaultdict
-
-
+from transformers import AutoTokenizer
+from utils import read_pkl
 class ConvEvaluator:
     def __init__(self, tokenizer, log_file_path=None):
         self.tokenizer = tokenizer
@@ -144,30 +144,46 @@ class ConvEvaluator_ByType:
         self.metric = {'bleu@1': 0, 'bleu@2': 0, 'bleu@3': 0, 'bleu@4': 0, 'dist@1': set(), 'dist@2': set(), 'dist@3': set(), 'dist@4': set(), }
         self.sent_cnt = 0
 
-    def after_eval_report(self, preds, labels):
-        self.collect_ngram(preds)
-        self.compute_bleu(preds, labels)
+    def after_eval_report(self, preds, labels, types):
+        self.collect_ngram(preds, types)
+        self.compute_bleu(preds, labels, types)
         self.sent_cnt += len([pred for pred in preds if len(pred) > 0])
         pass
+class Args:
+    def __init__(self) -> None:
+        self.version='en'
 
-
-def conv_gen_eval(path=None):
-    evaluator = ConvEvaluator(None, None)
-    rep_path = path if path else "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
-    preds, labels = [], []
+def conv_gen_eval(model_result='bartbase'):
+    import os
+    home, bert_name = '/home/work/CRSTEST/KEMGCRS/', 'bert-base-uncased'
+    tokenizer = AutoTokenizer.from_pretrained(bert_name, cache_dir=os.path.join(home, "model_cache", bert_name))
+    evaluator = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
+    test_dataset= read_pkl('/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl') # Data for true type, topic, knowledges
+    rep_path = os.path.join(home, 'temp_code','hitgen','model',model_result) # "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
+    types, preds, labels = [], [], []
     with open(rep_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
         for line in lines:
             linedic = json.loads(line)
             preds.append(linedic['pred'])
             labels.append(linedic['label'])
-    evaluator.after_eval_report(preds, labels)
+            types.append(linedic['type'])
+    evaluator.after_eval_report(preds[:], labels[:], types[:])
     report = evaluator.report()
-    report_text = [f"bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
-                   f"{report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
+    report_text = [f" {model_result}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+                   f"{model_result}: {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
     print(report_text[0], '\n', report_text[1])
 
-def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=None, topic_in_resps=None, p_topics=None, isrq=False):
+    topics = [i['topic'] for i in test_dataset]
+    topic_in_resps = [i['topic'].lower() in i['response'].lower() for i in test_dataset]
+    p_topics = [i['predicted_topic'][0] for i in test_dataset]
+    
+    hitdic, hitdic_ratio, output_str = gen_resp_topic(Args(), real_resps=labels, types=types, topics=topics, gen_resps=preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
+    for i in output_str: 
+        print(i)
+
+
+def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=None, topic_in_resps=None, p_topics=None, isrq=False): # For HitGen
     typelist = ['Q&A', 'Movie recommendation', 'Music recommendation', 'POI recommendation', 'Food recommendation'] if args.version != 'ko' else ['QA', 'Movie Recommendation']
     hitdic = {type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for type in typelist + ['Others', 'total']}
     for idx in range(len(real_resps)):
@@ -307,3 +323,4 @@ if __name__ == '__main__':
     import json
 
     conv_gen_eval()
+    pass

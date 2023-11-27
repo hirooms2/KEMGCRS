@@ -77,8 +77,8 @@ def main():
     
     """
     # args.batch_size = 512
-    topicDic = data_utils.readDic(os.path.join(args.data_dir, "topic2id.txt"))
-    goalDic = data_utils.readDic(os.path.join(args.data_dir, "goal2id.txt"))
+    topicDic = data_utils.readDic(os.path.join(args.data_dir, "topic2id_new.txt"))
+    goalDic = data_utils.readDic(os.path.join(args.data_dir, "goal2id_new.txt"))
     args.topicDic = topicDic
     args.goalDic = goalDic
     args.topic_num = len(topicDic['int'])
@@ -130,8 +130,8 @@ def main():
     args.hidden_size = bert_model.config.hidden_size  # BERT large 쓸 때 대비
 
     logger.info("Read raw file")
-    topicDic = data_utils.readDic(os.path.join(args.data_dir, "topic2id.txt"))
-    goalDic = data_utils.readDic(os.path.join(args.data_dir, "goal2id.txt"))
+    topicDic = data_utils.readDic(os.path.join(args.data_dir, "topic2id_new.txt"))
+    goalDic = data_utils.readDic(os.path.join(args.data_dir, "goal2id_new.txt"))
     args.topicDic = topicDic
     args.goalDic = goalDic
     args.topic_num = len(topicDic['int'])
@@ -191,9 +191,9 @@ def main():
             tokenizer = get_kobart_tokenizer(cachedir=os.path.join(args.home,'model_cache','kobart'))
             model = BartForConditionalGeneration.from_pretrained(get_pytorch_kobart_model(cachedir=os.path.join(args.home,'model_cache','kobart')))
             
-        print("Use Pretrained Model")
-        bert_special_tokens_dict = {'additional_special_tokens': ['<dialog>', '<topic>', '<type>', '<user_profile>', '<situation>', '<last_type>', '<knowledge>']}
-        tokenizer.add_special_tokens(bert_special_tokens_dict)
+        # print("Use Pretrained Model")
+        # bert_special_tokens_dict = {'additional_special_tokens': ['<dialog>', '<topic>', '<type>', '<user_profile>', '<situation>', '<last_type>', '<knowledge>']}
+        # tokenizer.add_special_tokens(bert_special_tokens_dict)
         
         model.resize_token_embeddings(len(tokenizer))
         model.to(args.device)
@@ -476,7 +476,7 @@ class Kers_Resp_Dataset(Dataset):  # knowledge용 데이터셋 -- 아직 KoRec�
             input_dialog = dialog
             target = response
 
-        ##GPT Tokenize
+        
         # self.tokenizer.padding_side = 'right' if self.mode == 'train' else 'left'
         source_input = self.tokenizer(input_dialog, max_length=self.args.max_length, padding='max_length', truncation=True)
         target = self.tokenizer(target, max_length=self.args.max_length, padding='max_length', truncation=True)

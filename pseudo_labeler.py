@@ -16,7 +16,7 @@ from itertools import chain
 import random
 from loguru import logger
 from torch.utils.data import Dataset, DataLoader
-
+from copy import deepcopy
 
 HOME = os.path.dirname(os.path.realpath(__file__))
 VERSION = 2
@@ -32,10 +32,12 @@ def get_models(args):
     # return query_tok, query_model, doc_tok, doc_model
     if 'cont' in args.score_method:
         from models.contriever.contriever import Contriever
-        args.model_name = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
+        args.model_name = 'facebook/contriever-msmarco'# 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
         # temp_plm_name = 'facebook/contriever-msmarco'
+        # bert_model = AutoModel.from_pretrained('bert-base-uncased', cache_dir = os.path.join(args.home, 'model_cache','bert-base-uncased')).to(args.device)
         bert_model = Contriever.from_pretrained(args.model_name, cache_dir=os.path.join(args.home, "model_cache", args.model_name)).to(args.device).eval()
         tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=os.path.join(args.home, "model_cache", args.model_name))
+        # bert_model.encoder, bert_model.embeddings, bert_model.pooler = contriever.encoder, contriever.embeddings, contriever.pooler
         return tokenizer, bert_model, tokenizer, bert_model
     elif "cot" in args.score_method.lower():
         from models.ours.cotmae import BertForCotMAE

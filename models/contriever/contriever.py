@@ -22,9 +22,12 @@ class Contriever(BertModel):
         output_attentions=None,
         output_hidden_states=None,
         normalize=False,
+        return_dict=None,
+        **kargs
     ):
 
         model_output = super().forward(
+            kargs,
             input_ids=input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
@@ -35,6 +38,7 @@ class Contriever(BertModel):
             encoder_attention_mask=encoder_attention_mask,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
+            return_dict=None,
         )
         return model_output
         # last_hidden = model_output["last_hidden_state"]

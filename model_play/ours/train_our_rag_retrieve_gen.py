@@ -116,8 +116,11 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
         from models.contriever.contriever import Contriever
         # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
         model_name = 'facebook/contriever-msmarco'
+        # bert_model = AutoModel.from_pretrained(args.bert_name, cache_dir=os.path.join(args.home, "model_cache", args.bert_name)).to(args.device)
+        # tokenizer = AutoTokenizer.from_pretrained(args.bert_name, cache_dir=os.path.join(args.home, "model_cache", args.bert_name))
         bert_model = Contriever.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
         tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
+        # bert_model.encoder, bert_model.embeddings, bert_model.pooler = contriever.encoder, contriever.embeddings, contriever.pooler
     elif 'cotmae' in args.knowledge_method: 
     # elif args.cotmae or 'cotmae' in args.model_name.lower(): 
         model_name = 'caskcsg/cotmae_base_uncased'
@@ -164,6 +167,8 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
         logger.info("@@@@@@@@@@@@@@@@@@@@@@@@@@@ Use Our Trained Bert For ctx_encoder @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n")
         ctx_encoder.ctx_encoder.bert_model = our_ctx_encoder
         ctx_tokenizer = tokenizer
+        # ctx_encoder.ctx_encoder.base_model.encoder
+        # ctx_encoder.ctx_encoder.base_model.embeddings
 
     logger.info("Create Knowledge Dataset")
     new_features = Features({"text": Value("string"), "title": Value("string"), "embeddings": Sequence(Value("float32"))})
@@ -186,7 +191,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     retriever.set_ctx_encoder_tokenizer(ctx_tokenizer)  # NO TOUCH
     rag_model = RagTokenForGeneration.from_pretrained("facebook/rag-token-nq", retriever=retriever).to(args.device)
     rag_tokenizer = AutoTokenizer.from_pretrained("facebook/rag-token-nq")
-    rag_model.set_context_encoder_for_training(ctx_encoder)
+    # rag_model.set_context_encoder_for_training(ctx_encoder)
     if args.rag_our_model:
         logger.info("@@@@@@@@@@@@@@@@@@@@@@@@@@ Model question_encoder changed by ours @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n")
         rag_model.rag.question_encoder.question_encoder.bert_model = our_question_encoder
@@ -230,11 +235,12 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
             logger.info(f"\n\n*****RAG_Only_Decoder Tune!***** rag_lr: {args.rag_lr}");
             logger.info(f"*****RAG_Only_Decoder Tune!***** rag_lr: {args.rag_lr}\n\n")
             rag_model.eval()
-            rag_model.rag.ctx_encoder.eval()
             rag_model.rag.question_encoder.eval()
             rag_model.generator.train()
-            for param in rag_model.rag.ctx_encoder.parameters():
-                param.requires_grad = False
+            if rag_model.rag.ctx_encoder:
+                rag_model.rag.ctx_encoder.eval()
+                for param in rag_model.rag.ctx_encoder.parameters():
+                    param.requires_grad = False
             for param in rag_model.rag.question_encoder.parameters():
                 param.requires_grad = False
         if epoch == 0: rag_model_weight_logging(args, rag_model, epoch, 'before_train', faiss_dataset)
@@ -672,8 +678,8 @@ class Rag_context_Dataset(Dataset):
         else:  # test
             cum_prob = 0
             candidate_topic_entities = []
-            for topic, conf in zip(predicted_topic_list, predicted_topic_confidence_list):
-                candidate_topic_entities.append(topic)
+            for topic_for, conf in zip(predicted_topic_list, predicted_topic_confidence_list):
+                candidate_topic_entities.append(topic_for)
                 cum_prob += conf
                 if cum_prob > self.args.topic_conf:
                     break

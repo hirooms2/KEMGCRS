@@ -176,3 +176,6 @@ temp_code/hitgen/model/gptbase
 temp_code/hitgen/model/gptlarge
 temp_code/hitgen/model/kers
 temp_code/hitgen/model/unimind1
+temp_code/hitgen/model/c2dpr_our
+temp_code/hitgen/model/rag
+temp_code/hitgen/model/ragdpr
