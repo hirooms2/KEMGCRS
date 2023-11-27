@@ -100,7 +100,7 @@ def main(args=None):
         goalDic = readDic(os.path.join(args.data_dir, "goal2id_new.txt"))
         # topicDic = readDic(os.path.join(args.data_dir, "topic2id.txt"))
         # goalDic = readDic(os.path.join(args.data_dir, "goal2id.txt"))
-    else:  ## TODO: 230911 - 적당한 실험들 이후부터는 new topic dic으로 재현시켜야함~!!!
+    else:  ## 
         temp_all_data = train_dataset_raw + valid_dataset_raw + test_dataset_raw
         topicDic = data_utils.makeDic(args, temp_all_data, 'topic')
         goalDic = data_utils.makeDic(args, temp_all_data, 'goal')
@@ -224,18 +224,18 @@ def main(args=None):
 
     if 'know' in args.task:
         # Get Goal, Topic, Pseudo_label
-        if args.contriever: 
+        if 'contriever' in args.knowledge_method: 
             from models.contriever.contriever import Contriever
             # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
             args.contriever = 'facebook/contriever-msmarco'
             bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
             tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
-        elif args.cotmae:
+            
+        elif 'cotmae' in args.knowledge_method:
             model_name = 'caskcsg/cotmae_base_uncased'
             tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
             bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
         # elif args.dpr: pass
-
         train_know_retrieve.train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
 
     if 'pred_k' in args.task:

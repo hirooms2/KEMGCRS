@@ -101,7 +101,7 @@ def default_parser(parser):
     parser.add_argument('--bart_name', default='facebook/bart-base', type=str, help="BERT Model Name")
     parser.add_argument('--gpt_name', default='gpt2', type=str, help="BERT Model Name")
 
-    parser.add_argument('--model_name', default='ours', type=str, help="BERT Model Name")
+    parser.add_argument('--model_name', default='ours', type=str, help="Knowledge Model Name")
     
     parser.add_argument('--max_prefix_length', default=30, type=int, help="dataset name")
     parser.add_argument('--max_gen_length', default=30, type=int, help="dataset name")

@@ -42,17 +42,20 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     from transformers import AutoTokenizer, AutoModel
     
     logger.info(f"Model_Name: {args.model_name}")
-    if args.contriever or 'contriever' in args.model_name.lower():
+    if 'contriever' in args.knowledge_method: 
+    # if args.contriever or 'contriever' in args.model_name.lower():
         from models.contriever.contriever import Contriever
         # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
         args.contriever = 'facebook/contriever-msmarco'
         bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
         tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
-    elif args.cotmae or 'cotmae' in args.model_name.lower(): 
+    elif 'cotmae' in args.knowledge_method: 
+    # elif args.cotmae or 'cotmae' in args.model_name.lower(): 
         model_name = 'caskcsg/cotmae_base_uncased'
         tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
         bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
-    elif 'RB_794RG_topic2' in args.model_name or 'dpr' in args.model_name.lower(): 
+    elif 'dpr' in args.knowledge_method: 
+    # elif 'RB_794RG_topic2' in args.model_name or 'dpr' in args.model_name.lower(): 
         tokenizer.add_special_tokens({'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>']})
         bert_model.resize_token_embeddings(len(tokenizer))
         pass
@@ -73,8 +76,6 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     eval_pred_loads(test_dataset_pred_aug, task='know')
 
-    
-
     if args.debug: train_dataset_pred_aug, test_dataset_pred_aug = train_dataset_pred_aug[:30], test_dataset_pred_aug[:30]
 
     train_datamodel_know = DialogDataset(args, train_dataset_pred_aug, train_knowledgeDB, train_knowledgeDB, tokenizer, mode='train', task='know')
@@ -87,6 +88,7 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
 
     retriever = Retriever(args, bert_model)
     retriever.load_state_dict(torch.load(f"{args.saved_model_path}/{args.model_name}_know.pt", map_location='cuda:0'), strict=False)
+
     with torch.no_grad():
         retriever.to(args.device)
         hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
@@ -96,11 +98,13 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     for i in test_output_str:
         logger.info(f"{args.model_name}: {i}")
     
+
 def save_pred_know_json(data_path, top10_cand_knows, top10_cand_knows_conf):
     from json import dumps
     with open(data_path, 'a', encoding='utf8') as fw:
         for k,c in zip(top10_cand_knows, top10_cand_knows_conf):
-            fw.write(dumps({'predicted_know' : k[:5],'predicted_know_conf' : c[:5]}) + "\n")
+            fw.write(dumps({'predicted_know' : k[:5],'predicted_know_confidence' : c[:5]}) + "\n")
+
 
 def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=None, retrieve=None, data_type='test'):
     logger.info(args.stage)

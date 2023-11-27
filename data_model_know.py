@@ -58,7 +58,7 @@ class DialogDataset(Dataset):
         self.knowledgeDB = knowledgeDB
         self.train_knowledgeDB = train_knowledgeDB  # new knowledge 체크용
         self.augmented_raw_sample = data_sample
-        self.know_max_length = args.know_max_length
+        self.know_max_length = args.know_max_length # 128
         self.mode = mode
 
     def negative_sampler(self, target_knowledge, candidate_knowledges):

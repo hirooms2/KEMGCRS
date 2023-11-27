@@ -151,9 +151,9 @@ class ConvEvaluator_ByType:
         pass
 
 
-def conv_gen_eval():
+def conv_gen_eval(path=None):
     evaluator = ConvEvaluator(None, None)
-    rep_path = "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
+    rep_path = path if path else "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
     preds, labels = [], []
     with open(rep_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()

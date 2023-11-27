@@ -213,6 +213,7 @@ def read_pred_json_lines(dataset, data_path):
         for idx, le in tqdm(enumerate(f), desc="READ_Pred", bar_format='{l_bar} | {bar:23} {r_bar}'):
             preds = json.loads(le)
             for k,v in preds.items():
+                if k == "predicted_know_conf": dataset[idx]['predicted_know_confidence'] = v # OMG........
                 dataset[idx][k] = v
     return dataset
 
@@ -220,10 +221,10 @@ def eval_pred_loads(dataset, task='goal'):
     cnt=[]
     for data in dataset:
         if task=='label': cnt.append(data['target_knowledge']==data[f'candidate_knowledges'][0])
-        elif task=='know': cnt.append(data['target_knowledge']==data[f'candidate_knowledges'][0])
+        elif task=='know': cnt.append(data['target_knowledge']==data[f'predicted_know'][0])
         else: cnt.append(data[task]==data[f'predicted_{task}'][0])
     logger.info(f"{task} predicted hit@1-ratio: {sum(cnt)/len(cnt):.3f}")
-    return round(sum(cnt)/len(cnt), 3)
+    return round(sum(cnt)/len(cnt), 4)
 
 def dataset_reader(args, data_name='train', dataset=None):
     all_knowledge = set()

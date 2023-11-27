@@ -8,7 +8,7 @@ from loguru import logger
 from collections import Counter
 import numpy as np
 from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
-from transformers import DPRContextEncoder, DPRContextEncoderTokenizerFast, RagRetriever, RagSequenceForGeneration, AutoTokenizer, BartForConditionalGeneration, RagTokenForGeneration
+from transformers import DPRContextEncoder, DPRContextEncoderTokenizerFast, RagRetriever, RagSequenceForGeneration, AutoTokenizer, BartForConditionalGeneration, RagTokenForGeneration, AutoModel
 from typing import List
 from datasets import Features, Sequence, Value, load_dataset
 from functools import partial
@@ -87,8 +87,8 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
 
     # Get Predicted knowledges
     logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
-    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'know', args.idea, args.knowledge_method, f'en_train_3711.txt'))
-    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir, 'know', args.idea, args.knowledge_method, f'en_test_3711.txt'))
+    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', 'our' if args.idea else 'default', args.knowledge_method, f'en_train_know_3711.txt'))
+    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', 'our' if args.idea else 'default', args.knowledge_method, f'en_test_know_3711.txt'))
     # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     data_utils.eval_pred_loads(test_dataset_pred_aug, task='know')
@@ -107,10 +107,33 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
 
     logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:50], test_dataset_aug_pred[:50]
-    bert_model.resize_token_embeddings(len(tokenizer)) # CotMAE, Contriever, DPR: 30522, OURS: 30527 
+
+
+
+    # Get Model
+    if 'contriever' in args.knowledge_method: 
+    # if args.contriever or 'contriever' in args.model_name.lower():
+        from models.contriever.contriever import Contriever
+        # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
+        model_name = 'facebook/contriever-msmarco'
+        bert_model = Contriever.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
+    elif 'cotmae' in args.knowledge_method: 
+    # elif args.cotmae or 'cotmae' in args.model_name.lower(): 
+        model_name = 'caskcsg/cotmae_base_uncased'
+        tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
+        bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
+    elif 'dpr' in args.knowledge_method: 
+    # elif 'RB_794RG_topic2' in args.model_name or 'dpr' in args.model_name.lower(): 
+        tokenizer.add_special_tokens({'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>']})
+        bert_model.resize_token_embeddings(len(tokenizer))
+        pass
+
+    # bert_model.resize_token_embeddings(len(tokenizer)) # CotMAE, Contriever, DPR: 30522, OURS: 30527 
     our_best_model = Retriever(args, bert_model)
-    if args.rag_our_model.upper() == 'C2DPR': # DPR, 
-        our_best_model.load_state_dict(torch.load(os.path.join(args.saved_model_path, f"{args.model_name}_know.pt"), map_location=args.device), strict=False)
+    # if args.rag_our_model.upper() == 'C2DPR': # DPR, 
+    if args.knowledge_method: # DPR, 
+        our_best_model.load_state_dict(torch.load(os.path.join(args.saved_model_path,'save', 'our' if args.idea else 'default', args.knowledge_method, f"{args.model_name}.pt"), map_location=args.device), strict=False)
     else: pass
     
     
@@ -175,16 +198,16 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     if args.rag_our_model or args.rag_our_model:
         from data_model_know import KnowledgeDataset
         from model_play.ours.eval_know_retrieve import knowledge_reindexing
-        knowledge_data = KnowledgeDataset(args, all_knowledgeDB, tokenizer)  # KTH: FOR RETRIEVE
-        knowledge_index_rerank = knowledge_reindexing(args, knowledge_data, our_best_model, stage='rerank')  # KTH: FOR RETRIEVE
-        knowledge_index_rerank = knowledge_index_rerank.to(args.device)  # KTH: FOR RETRIEVE
-        know_aug_train_dataset = make_know_pred(args, our_best_model, tokenizer, train_Dataset, knowledge_index_rerank, all_knowledgeDB)
-        # know_aug_valid_dataset = make_know_pred(args, our_best_model, tokenizer, valid_Dataset, knowledge_index_rerank, all_knowledgeDB)
-        know_aug_test_dataset = make_know_pred(args, our_best_model, tokenizer, test_Dataset, knowledge_index_rerank, all_knowledgeDB)
-        train_Dataset = Rag_context_Dataset(args, know_aug_train_dataset, rag_tokenizer, all_knowledgeDB, mode='train')
-        # valid_Dataset = Rag_context_Dataset(args, know_aug_valid_dataset, rag_tokenizer, all_knowledgeDB, mode='test')
-        test_Dataset = Rag_context_Dataset(args, know_aug_test_dataset, rag_tokenizer, all_knowledgeDB, mode='test')
-        logger.info(f"Dataset Knowledge Augmented Finish")
+        # knowledge_data = KnowledgeDataset(args, all_knowledgeDB, tokenizer)  # KTH: FOR RETRIEVE
+        # knowledge_index_rerank = knowledge_reindexing(args, knowledge_data, our_best_model, stage='rerank')  # KTH: FOR RETRIEVE
+        # knowledge_index_rerank = knowledge_index_rerank.to(args.device)  # KTH: FOR RETRIEVE
+        # know_aug_train_dataset = make_know_pred(args, our_best_model, tokenizer, train_Dataset, knowledge_index_rerank, all_knowledgeDB)
+        # # know_aug_valid_dataset = make_know_pred(args, our_best_model, tokenizer, valid_Dataset, knowledge_index_rerank, all_knowledgeDB)
+        # know_aug_test_dataset = make_know_pred(args, our_best_model, tokenizer, test_Dataset, knowledge_index_rerank, all_knowledgeDB)
+        # train_Dataset = Rag_context_Dataset(args, know_aug_train_dataset, rag_tokenizer, all_knowledgeDB, mode='train')
+        # # valid_Dataset = Rag_context_Dataset(args, know_aug_valid_dataset, rag_tokenizer, all_knowledgeDB, mode='test')
+        # test_Dataset = Rag_context_Dataset(args, know_aug_test_dataset, rag_tokenizer, all_knowledgeDB, mode='test')
+        # logger.info(f"Dataset Knowledge Augmented Finish")
         
         train_Dataset = Rag_context_Dataset(args, train_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='train')
         # valid_Dataset = Rag_context_Dataset(args, valid_dataset_aug_pred, rag_tokenizer, all_knowledgeDB, mode='test')

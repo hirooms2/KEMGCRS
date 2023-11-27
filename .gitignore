@@ -164,3 +164,15 @@ model_cache/
 /model_save/
 /output/
 LRplay.sh
+temp_code/hitgen/2023-08-04_231009_GPT_37_37_1e-5Types_ours_log_12_test_GEN_REPORT_TYPE
+temp_code/hitgen/2023-08-05_141956_GPTLarge_37_37_1e-5_ours_log_12_test_GEN_REPORT_TYPE
+temp_code/hitgen/2023-08-05_150611_Uni_3711train_3711test_ours_log--13epoch
+temp_code/hitgen/2023-08-06_182126_BART_Large_37train_37test256_3e-5_ours_log_14_test_GEN_REPORT_TYPE
+temp_code/hitgen/2023-08-06_200626_BART_base_37train_37test256_1e-5_ours_log_13_test_GEN_REPORT_TYPE
+temp_code/hitgen/2023-08-11_190408_Resp_Psd2_kers_log_14_test_GEN_REPORT_TYPE
+temp_code/hitgen/model/bartbase
+temp_code/hitgen/model/bartlarge
+temp_code/hitgen/model/gptbase
+temp_code/hitgen/model/gptlarge
+temp_code/hitgen/model/kers
+temp_code/hitgen/model/unimind1
