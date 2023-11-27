@@ -187,11 +187,23 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     print(f"Length of Knowledge knowledge_DB : {len(faiss_dataset)}")
 
     ### MODEL CALL
-    retriever = RagRetriever.from_pretrained('facebook/rag-sequence-nq', index_name='custom', indexed_dataset=faiss_dataset, init_retrieval=True)
+    if 'sequence' in args.rag_model:
+        rag_name='facebook/rag-sequence-nq'
+        rag_tokenizer = AutoTokenizer.from_pretrained(rag_name)
+        retriever = RagRetriever.from_pretrained(rag_name, index_name='custom', indexed_dataset=faiss_dataset, init_retrieval=True)
+        rag_model = RagSequenceForGeneration.from_pretrained(rag_name, retriever=retriever).to(args.device)
+        pass
+    elif 'token' in args.rag_model:
+        rag_name='facebook/rag-token-nq'
+        rag_tokenizer = AutoTokenizer.from_pretrained(rag_name)
+        retriever = RagRetriever.from_pretrained(rag_name, index_name='custom', indexed_dataset=faiss_dataset, init_retrieval=True)
+        rag_model = RagTokenForGeneration.from_pretrained(rag_name, retriever=retriever).to(args.device)
+    
     retriever.set_ctx_encoder_tokenizer(ctx_tokenizer)  # NO TOUCH
-    rag_model = RagTokenForGeneration.from_pretrained("facebook/rag-token-nq", retriever=retriever).to(args.device)
-    rag_tokenizer = AutoTokenizer.from_pretrained("facebook/rag-token-nq")
     # rag_model.set_context_encoder_for_training(ctx_encoder)
+
+
+
     if args.rag_our_model:
         logger.info("@@@@@@@@@@@@@@@@@@@@@@@@@@ Model question_encoder changed by ours @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n")
         rag_model.rag.question_encoder.question_encoder.bert_model = our_question_encoder

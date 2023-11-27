@@ -57,6 +57,7 @@ def add_ours_specific_args(parser):
     parser.add_argument("--rag_ctx_training", action='store_true', help="rag 의 ctx_encoder또한 학습시킬지 말지 (scratch에서 사용)")
 
     # parser.add_argument("--rag_our_bert", action='store_true', help="우리의 retriever모델을 쓸지 말지")
+    parser.add_argument("--rag_model", default='token', type=str, help="rag_our_version_bert", choices=['sequence','token'])
     parser.add_argument("--rag_our_model", default='', type=str, help="rag_our_version_bert", choices=['', 'DPR', 'C2DPR', 'dpr', 'c2dpr', 'contriever', 'cotmae'])
 
     parser.add_argument("--rag_context_input_length", type=int, default=256, help=" Method ")

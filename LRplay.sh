@@ -1,15 +1,17 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
-python main.py --gpu=1 --task=resp --log_name=Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune
-python main.py --gpu=1 --task=resp --log_name=DPROUR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune
+python kers_main.py --gpu=0 --task=resp --log_name=PreTrain_KERS_with_20ShuffledKnowledge --do_pretrain 
 
-python main.py --task=pred_k --model_name=ContrieverDPR_CL_Psd_BM25 --log_name=ContrieverDPR_CL_Psd_BM25_contriever로NoIdea학습 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1 --topk_topic=0 --contriever
-python main.py --task=pred_k --model_name=ContrieverOUR_GL_Psd_BM25 --log_name=ContrieverOUR_GL_Psd_BM25_contriever로OurIdea학습 --topk_topic=2 --train_ablation=RG --pseudo_pos_num=2 --topk_topic=2 --contriever
-python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25 --log_name=CotMAE_CL_Psd_BM25_coamae로NoIdea학습 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1 --topk_topic=0 --cotmae
-python main.py --task=pred_k --model_name=CotMAEOUR_GL2_Psd_BM25 --log_name=CotMAEOUR_GL2_Psd_BM25__cotmae로OurIdea학습 --topk_topic=2 --train_ablation=RG --pseudo_pos_num=2 --topk_topic=2 --cotmae
-python main.py --task=pred_k --model_name=DPRR_CL_Psd_BM25 --log_name=_DPRR_CL_Psd_BM25__DPR로NoIdea학습 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1 --topk_topic=0 
-python main.py --task=pred_k --model_name=RB_794RG_topic2_conf70_hj --log_name=RB_794RG_topic2_conf70_hj__DPR로OurIdea학습 --topk_topic=2 --train_ablation=RG --pseudo_pos_num=2 --topk_topic=2 
+python main.py --gpu=1 --task=resp --log_name=DPROUR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+python main.py --gpu=1 --task=resp --log_name=Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+
+# python main.py --task=pred_k --model_name=ContrieverDPR_CL_Psd_BM25 --log_name=ContrieverDPR_CL_Psd_BM25_contriever로NoIdea학습 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1 --topk_topic=0 --contriever
+# python main.py --task=pred_k --model_name=ContrieverOUR_GL_Psd_BM25 --log_name=ContrieverOUR_GL_Psd_BM25_contriever로OurIdea학습 --topk_topic=2 --train_ablation=RG --pseudo_pos_num=2 --topk_topic=2 --contriever
+# python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25 --log_name=CotMAE_CL_Psd_BM25_coamae로NoIdea학습 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1 --topk_topic=0 --cotmae
+# python main.py --task=pred_k --model_name=CotMAEOUR_GL2_Psd_BM25 --log_name=CotMAEOUR_GL2_Psd_BM25__cotmae로OurIdea학습 --topk_topic=2 --train_ablation=RG --pseudo_pos_num=2 --topk_topic=2 --cotmae
+# python main.py --task=pred_k --model_name=DPRR_CL_Psd_BM25 --log_name=_DPRR_CL_Psd_BM25__DPR로NoIdea학습 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1 --topk_topic=0 
+# python main.py --task=pred_k --model_name=RB_794RG_topic2_conf70_hj --log_name=RB_794RG_topic2_conf70_hj__DPR로OurIdea학습 --topk_topic=2 --train_ablation=RG --pseudo_pos_num=2 --topk_topic=2 
 
 
 
