@@ -59,8 +59,7 @@ def main():
 
     args = parser.parse_args()
     if args.task not in ['know', 'resp'] : Exception("\n!!! --task should set to 'know' or 'resp' !!!\n")
-    # if args.version=='ko':
-    #     args.bert_name = 'skt/kobert-base-v1'
+    # if args.version=='ko': args.bert_name = 'skt/kobert-base-v1'
 
     args.method = 'kers'
     args.model_name = 'kers'
@@ -512,4 +511,5 @@ if __name__ == '__main__':
 """
 python kers_main.py --TopicTask_Test_Prompt_usePredGoal --device=2 --inputWithKnowledge --gtpred --log_name="P_Goal_WithK_Train_PK_Test_GK_ShuffleK" --usePseudoTrain
 python kers_main.py --TopicTask_Test_Prompt_usePredGoal --device=2 --inputWithKnowledge --inputWithTopic --gtpred --log_name="P_Goal_P_Topic_WithK_Train_PK_Test_GK_ShuffleK" --usePseudoTrain
+python kers_main.py --version='2' --TopicTask_Test_Prompt_usePredGoal --device=2 --inputWithKnowledge --inputWithTopic --gtpred --log_name="P_Goal_P_Topic_WithK_Train_PK_Test_GK_ShuffleK" --usePseudoTrain
 """

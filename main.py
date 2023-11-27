@@ -44,7 +44,7 @@ def add_ours_specific_args(parser):
     # parser.add_argument("--goal_topic_load", default='794', type=str, help="Predicted goal_topic_saved")
 
     ## For resp
-    parser.add_argument("--rag_batch_size", type=int, default=4, help=" Method ")
+    parser.add_argument("--rag_batch_size", type=int, default=6, help=" Method ")
     parser.add_argument("--rag_input_dialog", type=str, default="dialog", help=" Method ")
     parser.add_argument("--rag_max_input_length", type=int, default=128, help=" Method ")  # Finally -> rag 128 + retrieved passage 128
     parser.add_argument("--rag_max_target_length", type=int, default=128, help=" Method ")

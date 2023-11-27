@@ -220,7 +220,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
         logger.info(f"Dataset Knowledge Augmented !")
 
     train_dataloader = DataLoader(train_Dataset, batch_size=args.rag_batch_size, shuffle=True)
-    test_dataloader = DataLoader(test_Dataset, batch_size=args.rag_batch_size, shuffle=False)
+    test_dataloader = DataLoader(test_Dataset, batch_size=args.rag_batch_size*2, shuffle=False)
 
     optimizer = torch.optim.AdamW(rag_model.parameters(), lr=args.rag_lr, weight_decay=0.1, eps=5e-9)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_dc_step, gamma=args.lr_dc)
