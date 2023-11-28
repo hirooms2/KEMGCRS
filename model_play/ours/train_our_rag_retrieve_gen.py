@@ -189,15 +189,17 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     ### MODEL CALL
     if 'sequence' in args.rag_model:
         rag_name='facebook/rag-sequence-nq'
-        rag_tokenizer = AutoTokenizer.from_pretrained(rag_name)
-        retriever = RagRetriever.from_pretrained(rag_name, index_name='custom', indexed_dataset=faiss_dataset, init_retrieval=True)
-        rag_model = RagSequenceForGeneration.from_pretrained(rag_name, retriever=retriever).to(args.device)
+        cache_path=os.path.join(args.home,'model_cache','rag_name')
+        rag_tokenizer = AutoTokenizer.from_pretrained(rag_name, cache_dir=cache_path)
+        retriever = RagRetriever.from_pretrained(rag_name, index_name='custom', indexed_dataset=faiss_dataset, init_retrieval=True, cache_dir=cache_path)
+        rag_model = RagSequenceForGeneration.from_pretrained(rag_name, retriever=retriever, cache_dir=cache_path).to(args.device)
         pass
     elif 'token' in args.rag_model:
         rag_name='facebook/rag-token-nq'
-        rag_tokenizer = AutoTokenizer.from_pretrained(rag_name)
-        retriever = RagRetriever.from_pretrained(rag_name, index_name='custom', indexed_dataset=faiss_dataset, init_retrieval=True)
-        rag_model = RagTokenForGeneration.from_pretrained(rag_name, retriever=retriever).to(args.device)
+        cache_path=os.path.join(args.home,'model_cache','rag_name')
+        rag_tokenizer = AutoTokenizer.from_pretrained(rag_name, cache_dir=cache_path)
+        retriever = RagRetriever.from_pretrained(rag_name, index_name='custom', indexed_dataset=faiss_dataset, init_retrieval=True, cache_dir=cache_path)
+        rag_model = RagTokenForGeneration.from_pretrained(rag_name, retriever=retriever, cache_dir=cache_path).to(args.device)
     
     retriever.set_ctx_encoder_tokenizer(ctx_tokenizer)  # NO TOUCH
     # rag_model.set_context_encoder_for_training(ctx_encoder)
@@ -431,7 +433,7 @@ def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=Non
         #     hitdic['total']['hit1_Rec'] +=1
 
     hitdic_ratio = {goal_type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for goal_type in typelist + ["Others", 'total']}
-    output_str = [f"                         hit1_Rec,  hit1_Gen,  total_cnt"]
+    output_str = [f"                      hit1_Rec,  hit1_Gen,  total_cnt"]
     for key in hitdic.keys():
         if hitdic[key]['total']:
             hitdic_ratio[key]['hit1_Gen'] = hitdic[key]['hit1_Gen'] / hitdic[key]['total']
@@ -558,7 +560,7 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
     rag_doc_scores, rag_contexts, contexts, label_gold_knowledges, label_pseudo_knowledges, top5_docs, real_resps, gen_resp, new_knows = [], [], [], [], [], [], [], [], []
     types, topics, p_topics = [], [], []
     topic_in_resps = []
-    evaluator = ConvEvaluator(tokenizer=tokenizer, log_file_path=None)
+    # evaluator = ConvEvaluator(tokenizer=tokenizer, log_file_path=None)
     evaluatortype = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=os.path.join(args.output_dir, f"{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
     for batch in tqdm(data_loader, desc=f"Epoch {epoch}__{mode}", bar_format=' {l_bar} | {bar:23} {r_bar}'):
         source_ids, source_mask, target_ids = batch["input_ids"].to(args.device), batch["attention_mask"].to(args.device), batch["response"].to(args.device)
@@ -606,7 +608,7 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
             )
             resp_batch = tokenizer.generator.batch_decode(gen_ids, skip_special_tokens=cleanup, clean_up_tokenization_spaces=cleanup)
             gen_resp.extend(resp_batch)
-            evaluator.evaluate(gen_ids, target_ids, log=False)
+            # evaluator.evaluate(gen_ids, target_ids, log=False)
             evaluatortype.evaluate(gen_ids, target_ids, batch_types, log=True)
             topic_in_resps.extend([bool(i) for i in batch['topic_in_resp']])
 
@@ -615,12 +617,12 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
     hitdic, hitdic_ratio, output_str = know_hit_ratio(args, pred_pt=top5_docs, gold_pt=label_gold_knowledges, new_knows=new_knows, types=types)
     if (epoch == 0 and mode == 'train') or 'knowledge' in mode:
         for i in output_str:
-            logger.info(f"{mode}_{epoch} {i}")
+            logger.info(f"Knowledge_{mode}_{epoch} {i}")
     if mode == 'test':
-        report = evaluator.report()
-        report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
-                       f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
-        output_str.extend(report_text)
+        # report = evaluator.report()
+        # report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+        #                f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
+        # output_str.extend(report_text)
 
         report = evaluatortype.report()
         report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
@@ -633,15 +635,15 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
             reports_text = f"NEW_{epoch}_{mode:^5}_{each_type:^21}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}, Count: {report['sent_cnt']}"
             output_str.append(reports_text)
 
-        evaluator.reset_metric()
+        # evaluator.reset_metric()
         evaluatortype.reset_metric()
 
-        _, _, resp_topic_str = gen_resp_topic(args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resp, topic_in_resps=topic_in_resps, p_topics=p_topics)
+        _, _, resp_topic_str = evaluatortype.gen_resp_topic(args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resp, topic_in_resps=topic_in_resps, p_topics=p_topics)
 
         for i in output_str:
-            logger.info(f"{mode}_{epoch} {i}")
+            logger.info(f"Response_{mode}_{epoch} {i}")
         for i in resp_topic_str:
-            logger.info(f"{mode}_{epoch} {i}")
+            logger.info(f"HitGen_{mode}_{epoch} {i}")
 
         logger.info(report_text[0])
         logger.info(report_text[1])
@@ -751,7 +753,7 @@ class Rag_context_Dataset(Dataset):
             context_batch['context_input_attention_mask'] = torch.stack(context_batch['context_input_attention_mask'], dim=0)
             ## END ##
         context_batch['pred_topic'] = self.args.taskDic['topic']['str'][predicted_topic_list[0]]  # 받은 Predicted Topic
-        context_batch['topic_in_resp'] = topic in response  # Topic이 response에 들어있는지 True, False 로 체크
+        context_batch['topic_in_resp'] = topic.lower() in response.lower()  # Topic이 response에 들어있는지 True, False 로 체크
 
         context_batch['response'] = [self.tokenizer.generator.bos_token_id] + labels  # kobart <s> issue
         context_batch['goal_idx'] = self.args.goalDic['str'][goal]  # index로 바꿈

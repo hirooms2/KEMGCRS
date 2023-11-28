@@ -149,6 +149,47 @@ class ConvEvaluator_ByType:
         self.compute_bleu(preds, labels, types)
         self.sent_cnt += len([pred for pred in preds if len(pred) > 0])
         pass
+    
+    @staticmethod
+    def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=None, topic_in_resps=None, p_topics=None, isrq=False): # For HitGen
+        typelist = ['Q&A', 'Movie recommendation', 'Music recommendation', 'POI recommendation', 'Food recommendation'] if args.version != 'ko' else ['QA', 'Movie Recommendation']
+        hitdic = {type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for type in typelist + ['Others', 'total']}
+        for idx in range(len(real_resps)):
+            goal_type = types[idx]
+            if goal_type in typelist:
+                tmp_goal = goal_type
+            else:
+                tmp_goal = 'Others'
+
+            pred, gold, topic, p_topic = gen_resps[idx].lower(), real_resps[idx].lower(), topics[idx].lower(), p_topics[idx].lower()
+            topic_in_resp = topic_in_resps[idx]
+            if topic in gold:
+                try:
+                    if isrq: 
+                        pred, gold = pred.split('|')[-1] , gold.split('|')[-1]
+                except: pass
+
+                if topic_in_resp:
+                    hitdic['total']['total'] += 1
+                    hitdic[tmp_goal]['total'] += 1
+                    if topic in pred:
+                        hitdic[tmp_goal]['hit1_Gen'] += 1
+                        hitdic['total']['hit1_Gen'] += 1
+                    if topic == p_topic:
+                        hitdic[tmp_goal]['hit1_Rec'] += 1
+                        hitdic['total']['hit1_Rec'] += 1
+                
+        hitdic_ratio = {goal_type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for goal_type in typelist + ["Others", 'total']}
+        output_str = [f"                      hit1_Rec,  hit1_Gen,  total_cnt"]
+        for key in hitdic.keys():
+            if hitdic[key]['total']:
+                hitdic_ratio[key]['hit1_Gen'] = hitdic[key]['hit1_Gen'] / hitdic[key]['total']
+                hitdic_ratio[key]['hit1_Rec'] = hitdic[key]['hit1_Rec'] / hitdic[key]['total']
+
+            hitdic_ratio[key]['total'] = hitdic[key]['total']
+            output_str.append(f"{key:^22}: {hitdic_ratio[key]['hit1_Rec']:.3f}, {hitdic_ratio[key]['hit1_Gen']:.3f}, {hitdic_ratio[key]['total']}")
+        output_str.append(f"(pred) Topic Hit Ratio: {sum([p == g for p, g in zip(p_topics, topics)]) / len(p_topics):.3f}")
+        return hitdic, hitdic_ratio, output_str
 class Args:
     def __init__(self) -> None:
         self.version='en'
@@ -183,43 +224,7 @@ def conv_gen_eval(model_result='bartbase'):
         print(i)
 
 
-def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=None, topic_in_resps=None, p_topics=None, isrq=False): # For HitGen
-    typelist = ['Q&A', 'Movie recommendation', 'Music recommendation', 'POI recommendation', 'Food recommendation'] if args.version != 'ko' else ['QA', 'Movie Recommendation']
-    hitdic = {type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for type in typelist + ['Others', 'total']}
-    for idx in range(len(real_resps)):
-        goal_type = types[idx]
-        if goal_type in typelist:
-            tmp_goal = goal_type
-        else:
-            tmp_goal = 'Others'
 
-        pred, gold, topic, topic_in_resp, p_topic = gen_resps[idx].lower(), real_resps[idx].lower(), topics[idx].lower(), topic_in_resps[idx], p_topics[idx].lower()
-        try:
-            if isrq: 
-                pred, gold = pred.split('|')[-1] , gold.split('|')[-1]
-        except: pass
-
-        if topic_in_resp:
-            hitdic['total']['total'] += 1
-            hitdic[tmp_goal]['total'] += 1
-            if topic in pred:
-                hitdic[tmp_goal]['hit1_Gen'] += 1
-                hitdic['total']['hit1_Gen'] += 1
-            if topic == p_topic:
-                hitdic[tmp_goal]['hit1_Rec'] += 1
-                hitdic['total']['hit1_Rec'] += 1
-            
-    hitdic_ratio = {goal_type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for goal_type in typelist + ["Others", 'total']}
-    output_str = [f"                         hit1_Rec,  hit1_Gen,  total_cnt"]
-    for key in hitdic.keys():
-        if hitdic[key]['total']:
-            hitdic_ratio[key]['hit1_Gen'] = hitdic[key]['hit1_Gen'] / hitdic[key]['total']
-            hitdic_ratio[key]['hit1_Rec'] = hitdic[key]['hit1_Rec'] / hitdic[key]['total']
-
-        hitdic_ratio[key]['total'] = hitdic[key]['total']
-        output_str.append(f"{key:^22}: {hitdic_ratio[key]['hit1_Rec']:.3f}, {hitdic_ratio[key]['hit1_Gen']:.3f}, {hitdic_ratio[key]['total']}")
-    output_str.append(f"(pred) Topic Hit Ratio: {sum([p == g for p, g in zip(p_topics, topics)]) / len(p_topics):.3f}")
-    return hitdic, hitdic_ratio, output_str
 
 # def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=None):
 #     typelist=['Q&A', 'Movie recommendation', 'Music recommendation', 'POI recommendation', 'Food recommendation'] if args.version !='ko' else ['QA','Movie Recommendation']

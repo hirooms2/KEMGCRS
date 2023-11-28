@@ -1,6 +1,7 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=10 --log_name=KERS_PsdShuffledTop10
 python kers_main.py --gpu=0 --task=resp --log_name=PreTrain_KERS_with_20ShuffledKnowledge --do_pretrain 
 
 python main.py --gpu=1 --task=resp --log_name=DPROUR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
