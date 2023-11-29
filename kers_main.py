@@ -16,7 +16,7 @@ from model_play.kers import kers_knowledge_retrieve
 from random import shuffle
 from transformers import BertTokenizer, BartForConditionalGeneration, BartTokenizer
 # from config import *
-from evaluator_conv import ConvEvaluator_ByType, gen_resp_topic
+from evaluator_conv import ConvEvaluator_ByType
 from model_play.ours.train_our_rag_retrieve_gen import make_aug_gt_pred
 from collections import Counter
 from nltk.translate.bleu_score import corpus_bleu
@@ -51,7 +51,7 @@ def add_kers_specific_args(parser):
     parser.add_argument("--inputWithKnowledge", action='store_true', help="Input으로 Dialog 외의 정보들도 줄지 여부")
     parser.add_argument("--inputWithTopic", action='store_true', help="Input에 Topic도 넣어줄지 여부")
     parser.add_argument("--kers_generator", type=str, default="facebook/bart-base", help=" Method ")
-    parser.add_argument("--kers_retrieve_saved_num", type=int, default=7, help=" Method ")
+    # parser.add_argument("--kers_retrieve_saved_num", type=int, default=7, help=" Method ")
     parser.add_argument("--kers_candidate_knowledge_num", type=int, default=20, help=" Method ")
     return parser
 
@@ -126,10 +126,10 @@ def main():
         bert_model = AutoModel.from_pretrained(args.bert_name, cache_dir=os.path.join(args.home, "model_cache", args.bert_name))
         # bert_config = AutoConfig.from_pretrained(args.bert_name, cache_dir=os.path.join(args.home, "model_cache", args.bert_name))
         tokenizer = AutoTokenizer.from_pretrained(args.bert_name, cache_dir=os.path.join(args.home, "model_cache", args.bert_name))
-    bert_special_tokens_dict = {
-    'additional_special_tokens': ['<dialog>', '<topic>', '<type>', '<user_profile>', '<situation>'],}
+    # bert_special_tokens_dict = {
+    # 'additional_special_tokens': ['<dialog>', '<topic>', '<type>', '<user_profile>', '<situation>'],}
 
-    tokenizer.add_special_tokens(bert_special_tokens_dict)  # [TH] add bert special token (<dialog>, <topic> , <type>)
+    # tokenizer.add_special_tokens(bert_special_tokens_dict)  # [TH] add bert special token (<dialog>, <topic> , <type>)
     bert_model.resize_token_embeddings(len(tokenizer))
     args.hidden_size = bert_model.config.hidden_size  # BERT large 쓸 때 대비
 
@@ -187,7 +187,7 @@ def main():
 
         model_cache_dir = os.path.join(args.home, 'model_cache', model)
         if args.version == '2':
-            tokenizer = BertTokenizer.from_pretrained(model, cache_dir=model_cache_dir)
+            tokenizer = BartTokenizer.from_pretrained(model, cache_dir=model_cache_dir)
             model = BartForConditionalGeneration.from_pretrained(model, cache_dir=model_cache_dir)
         else: # version == 'ko'
             from models.kobart import get_pytorch_kobart_model, get_kobart_tokenizer
@@ -270,7 +270,7 @@ def main():
         { "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], "weight_decay": 0.0}]
     optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.lr, eps=1e-8)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_dc_step, gamma=args.lr_dc)
-    logger.info(f"Logging Epoch results:                      hit@1, hit@3, hit@5, hit_new@1, hit_new@3, hit_new@5")
+    # logger.info(f"Logging Epoch results:                      hit@1, hit@3, hit@5, hit_new@1, hit_new@3, hit_new@5")
     tasks=['resp']
     for task in tasks:
         max_train_hit1 = 0
@@ -291,16 +291,18 @@ def main():
             model.train()
             with torch.autograd.set_detect_anomaly(False):
                 loss, perplexity = epoch_play(args, tokenizer, model, train_dataloader, optimizer, scheduler, epoch, task, mode='train')
-            args.data_mode = 'test'
-            model.eval()
-            with torch.no_grad():
-                loss, perplexity = epoch_play(args, tokenizer, model, test_dataloader, optimizer, scheduler, epoch, task, mode='test')
-                if test_loss >= loss:
-                    test_loss = loss
-                    best_epoch = epoch
-                    torch.save(model.state_dict(), os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth'))
-                    logger.info(f"Loss: {loss}, Model Saved in {os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth')}")
-                # for i in output_strings:
+            
+            if epoch>5:
+                args.data_mode = 'test'
+                model.eval()
+                with torch.no_grad():
+                    loss, perplexity = epoch_play(args, tokenizer, model, test_dataloader, optimizer, scheduler, epoch, task, mode='test')
+                    if test_loss >= loss:
+                        test_loss = loss
+                        best_epoch = epoch
+                        torch.save(model.state_dict(), os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth'))
+                        logger.info(f"Loss: {loss}, Model Saved in {os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth')}")
+                    # for i in output_strings:
                 #     logger.info(f"Epoch_{epoch} {args.data_mode}  {i}")
 
         logger.info(f"")
@@ -334,8 +336,8 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         
         contexts.extend(tokenizer.batch_decode(dialog_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
         resps.extend(tokenizer.batch_decode(response, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
-        batch_types = tokenizer.batch_decode(goal_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens)
-        types.extend(batch_types)
+        batch_types = batch['type']
+        types.extend(tokenizer.batch_decode(goal_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
         topics.extend(batch['topic'])
         p_topics.extend(batch['p_topic'])
         topic_in_resps.extend(batch['topic_in_resp'])
@@ -347,6 +349,7 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
             gen_resp = tokenizer.batch_decode(gen_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens)
             task_preds.extend(gen_resp)
             evaluator.evaluate(gen_ids, response, batch_types, log=True)
+            # evaluator.evaluate(preds=gen_ids, labels=response, types=batch_types, log=True)
 
         loss = outputs[0]
         epoch_loss += loss.item()
@@ -366,15 +369,25 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
     logger.info(f"{mode}_EPOCH_{epoch}_Perplexity(Original): {perplexity:.3f}")
     save_preds(args, contexts, task_preds, epoch=epoch, new_knows=None, real_resp=resps, goals=types, knowledges=knowledges, mode=mode)
     if mode=='test' : 
-        report = evaluator.report_ByType()
+
+        report = evaluator.report()
+        report_text = [f"TOTAL_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+                       f"TOTAL_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
+        logger.info(report_text)
+
+        report_type = evaluator.report_ByType()
         # report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
                     #    f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
-        logger.info(f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4")
-        for i in report:
-            logger.info(i)
-        evaluator.reset_metric()
+        logger.info(f"NEW_{epoch}_{mode:^5}_{'each_type':^21}:  bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4")
+        for each_type, report in report_type.items():
+            reports_text = f"NEW_{epoch}_{mode:^5}_{each_type:^21}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}, Count: {report['sent_cnt']}"
+            logger.info(reports_text)
 
-        _, _, resp_topic_str = gen_resp_topic(args, real_resps=resps, types=types, topics=topics, gen_resps=task_preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
+        # for i in report:
+        #     logger.info(f"{i}: {report[i]}")
+        evaluator.reset_metric()
+        
+        _, _, resp_topic_str = evaluator.gen_resp_topic(args, real_resps=resps, types=types, topics=topics, gen_resps=task_preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
         for i in resp_topic_str:
             logger.info(f"HITGEN: {i}")
     return loss, perplexity

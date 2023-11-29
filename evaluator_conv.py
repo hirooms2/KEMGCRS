@@ -219,53 +219,9 @@ def conv_gen_eval(model_result='bartbase'):
     topic_in_resps = [i['topic'].lower() in i['response'].lower() for i in test_dataset]
     p_topics = [i['predicted_topic'][0] for i in test_dataset]
     
-    hitdic, hitdic_ratio, output_str = gen_resp_topic(Args(), real_resps=labels, types=types, topics=topics, gen_resps=preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
+    hitdic, hitdic_ratio, output_str = evaluator.gen_resp_topic(Args(), real_resps=labels, types=types, topics=topics, gen_resps=preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
     for i in output_str: 
         print(i)
-
-
-
-
-# def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=None):
-#     typelist=['Q&A', 'Movie recommendation', 'Music recommendation', 'POI recommendation', 'Food recommendation'] if args.version !='ko' else ['QA','Movie Recommendation']
-#     hitdic = {type: {'hit1_in_gold': 0, 'hit1_all':0, 'in_gold_cnt':0, 'total': 0} for type in typelist + ['Others', 'total']}
-#     for idx in range(len(real_resps)):
-#         goal_type = types[idx]
-#         if goal_type in typelist: tmp_goal = goal_type
-#         else: tmp_goal = 'Others'
-
-#         pred, gold, topic = gen_resps[idx], real_resps[idx], topics[idx]
-
-#         hitdic['total']['total'] += 1
-#         hitdic[tmp_goal]['total'] += 1
-#         if topic in gold and topic in pred:
-#             hitdic[tmp_goal]['hit1_all'] +=1
-#             hitdic[tmp_goal]['hit1_in_gold'] +=1
-#             hitdic[tmp_goal]['in_gold_cnt'] +=1
-#             hitdic['total']['hit1_all'] +=1
-#             hitdic['total']['hit1_in_gold'] +=1
-#             hitdic['total']['in_gold_cnt'] +=1
-
-#         elif topic in gold:
-#             hitdic[tmp_goal]['in_gold_cnt'] +=1
-#             hitdic['total']['in_gold_cnt'] +=1
-
-#         elif topic in pred:
-#             hitdic[tmp_goal]['hit1_all'] +=1
-#             hitdic['total']['hit1_all'] +=1
-
-#     hitdic_ratio = {goal_type: {'hit1_in_gold': 0, 'hit1_all': 0, 'in_gold_cnt':0, 'total': 0} for goal_type in typelist + ["Others", 'total']}
-#     output_str = [f"                         hit1_in_gold,  hit1_all,  in_gold_cnt, total_cnt"]
-#     for key in hitdic.keys():
-#         if hitdic[key]['total']:
-#             hitdic_ratio[key]['hit1_all'] = hitdic[key]['hit1_all'] / hitdic[key]['total']
-#         if hitdic[key]['in_gold_cnt']:
-#             hitdic_ratio[key]['hit1_in_gold'] = hitdic[key]['hit1_in_gold'] / hitdic[key]['in_gold_cnt']
-
-#         hitdic_ratio[key]['total'] = hitdic[key]['total']
-#         hitdic_ratio[key]['in_gold_cnt'] = hitdic[key]['in_gold_cnt']
-#         output_str.append(f"{key:^22}: {hitdic_ratio[key]['hit1_in_gold']:.3f}, {hitdic_ratio[key]['hit1_all']:.3f}, {hitdic_ratio[key]['in_gold_cnt']}, {hitdic_ratio[key]['total']}")
-#     return hitdic, hitdic_ratio, output_str
 
 
 def know_hit_ratio(args, pred_pt, gold_pt, new_knows=None, types=None, typelist=['Q&A', 'Movie recommendation', 'Music recommendation', 'POI recommendation', 'Food recommendation'], new_check=False):

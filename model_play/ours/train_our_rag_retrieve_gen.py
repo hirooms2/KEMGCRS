@@ -320,8 +320,7 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         types.extend(batch_types)
 
         if mode == 'test':
-            gen_ids = model.generate(source_ids, min_length=0, max_length=args.rag_max_target_length, early_stopping=True,
-                                     num_beams=1, num_return_sequences=1, n_docs=5)
+            gen_ids = model.generate(source_ids, min_length=0, max_length=args.rag_max_target_length, early_stopping=True, num_beams=1, num_return_sequences=1, n_docs=5)
             resp_batch = tokenizer.generator.batch_decode(gen_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
             gen_resp.extend(resp_batch)
             evaluatortype.evaluate(gen_ids, target_ids, batch_types, log=True)
@@ -336,7 +335,7 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         report = evaluatortype.report()
         report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
                        f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
-        output_str.extend(report_text)
+        # output_str.extend(report_text)
         report_type = evaluatortype.report_ByType()
         output_str.append(f"NEW_{epoch}_{mode:^5}_{'each_type':^21}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4, count")
         for each_type, report in report_type.items():
@@ -393,55 +392,13 @@ def know_hit_ratio(args, pred_pt, gold_pt, new_knows=None, types=None, typelist=
                 if new and gold == pred: hitdic[tmp_goal]['hit1_new'] += 1
 
     hitdic_ratio = {goal_type: {'hit1': 0, 'hit3': 0, 'hit5': 0, 'hit1_new': 0, 'hit3_new': 0, 'hit5_new': 0, 'total': 0} for goal_type in typelist + ["Others", 'total']}
-    output_str = [f"                         hit1,  hit3,  hit5, hit1_new, hit3_new, hit5_new, total_cnt"]
+    output_str = [f"Knowledges:                          hit1,  hit3,  hit5, total_cnt"]
     for key in hitdic.keys():
         for hit in ['hit1', 'hit3', 'hit5']:
             if hitdic[key]['total']:
                 hitdic_ratio[key][hit] = hitdic[key][hit] / hitdic[key]['total']
         hitdic_ratio[key]['total'] = hitdic[key]['total']
-        output_str.append(f"{key:^22}: {hitdic_ratio[key]['hit1']:.3f}, {hitdic_ratio[key]['hit3']:.3f}, {hitdic_ratio[key]['hit5']:.3f}, {hitdic_ratio[key]['total']}")
-    return hitdic, hitdic_ratio, output_str
-
-
-def gen_resp_topic(args, real_resps=None, types=None, topics=None, gen_resps=None, topic_in_resps=None, p_topics=None):
-    typelist = ['Q&A', 'Movie recommendation', 'Music recommendation', 'POI recommendation', 'Food recommendation'] if args.version != 'ko' else ['QA', 'Movie Recommendation']
-    hitdic = {type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for type in typelist + ['Others', 'total']}
-    for idx in range(len(real_resps)):
-        goal_type = types[idx]
-        if goal_type in typelist:
-            tmp_goal = goal_type
-        else:
-            tmp_goal = 'Others'
-
-        pred, gold, topic, topic_in_resp, p_topic = gen_resps[idx].lower(), real_resps[idx].lower(), topics[idx].lower(), topic_in_resps[idx], p_topics[idx].lower()
-        if topic_in_resp:
-            hitdic['total']['total'] += 1
-            hitdic[tmp_goal]['total'] += 1
-            if topic in pred:
-                hitdic[tmp_goal]['hit1_Gen'] += 1
-                hitdic['total']['hit1_Gen'] += 1
-            if topic == p_topic:
-                hitdic[tmp_goal]['hit1_Rec'] += 1
-                hitdic['total']['hit1_Rec'] += 1
-        # hitdic['total']['total'] += 1
-        # hitdic[tmp_goal]['total'] += 1
-        # if topic in pred:
-        #     hitdic[tmp_goal]['hit1_Gen'] +=1
-        #     hitdic['total']['hit1_Gen'] +=1
-        # if topic_in_resp:
-        #     hitdic[tmp_goal]['hit1_Rec'] +=1
-        #     hitdic['total']['hit1_Rec'] +=1
-
-    hitdic_ratio = {goal_type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for goal_type in typelist + ["Others", 'total']}
-    output_str = [f"                      hit1_Rec,  hit1_Gen,  total_cnt"]
-    for key in hitdic.keys():
-        if hitdic[key]['total']:
-            hitdic_ratio[key]['hit1_Gen'] = hitdic[key]['hit1_Gen'] / hitdic[key]['total']
-            hitdic_ratio[key]['hit1_Rec'] = hitdic[key]['hit1_Rec'] / hitdic[key]['total']
-
-        hitdic_ratio[key]['total'] = hitdic[key]['total']
-        output_str.append(f"{key:^22}: {hitdic_ratio[key]['hit1_Rec']:.3f}, {hitdic_ratio[key]['hit1_Gen']:.3f}, {hitdic_ratio[key]['total']}")
-    output_str.append(f"(pred) Topic Hit Ratio: {sum([p == g for p, g in zip(p_topics, topics)]) / len(p_topics):.3f}")
+        output_str.append(f"Knowledges: {key:^22}: {hitdic_ratio[key]['hit1']:.3f}, {hitdic_ratio[key]['hit3']:.3f}, {hitdic_ratio[key]['hit5']:.3f}, {hitdic_ratio[key]['total']}")
     return hitdic, hitdic_ratio, output_str
 
 
@@ -641,7 +598,7 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
         _, _, resp_topic_str = evaluatortype.gen_resp_topic(args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resp, topic_in_resps=topic_in_resps, p_topics=p_topics)
 
         for i in output_str:
-            logger.info(f"Response_{mode}_{epoch} {i}")
+            logger.info(f"{mode}_{epoch} {i}")
         for i in resp_topic_str:
             logger.info(f"HitGen_{mode}_{epoch} {i}")
 
