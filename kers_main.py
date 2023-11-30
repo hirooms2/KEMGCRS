@@ -45,14 +45,15 @@ def add_kers_specific_args(parser):
     # parser.add_argument("--usePseudoTrain", action='store_true', help="Knowledge Pseudo label을 label로 사용할지 여부 (Train)")
     # parser.add_argument("--usePseudoTest", action='store_true', help="Knowledge Pseudo label을 label로 사용할지 여부 (Test)")
     
-    parser.add_argument("--do_pretrain", action='store_true', help="Pre_train 할 지 여부") ## Kers 가 워낙 못해서 그냥 해줘야할듯
+    parser.add_argument("--kers_pretrain_epochs", type=int, default=0, help="Pre_train 몇 epoch 할지") ## Kers 가 워낙 못해서 그냥 해줘야할듯
     parser.add_argument("--originBart", action='store_true', help="KERSBART를할지, BART를 쓸지 (resp)") ## Kers 가 워낙 못해서 그냥 해줘야할듯
 
     parser.add_argument("--inputWithKnowledge", action='store_true', help="Input으로 Dialog 외의 정보들도 줄지 여부")
     parser.add_argument("--inputWithTopic", action='store_true', help="Input에 Topic도 넣어줄지 여부")
     parser.add_argument("--kers_generator", type=str, default="facebook/bart-base", help=" Method ")
     # parser.add_argument("--kers_retrieve_saved_num", type=int, default=7, help=" Method ")
-    parser.add_argument("--kers_candidate_knowledge_num", type=int, default=20, help=" Method ")
+    parser.add_argument("--kers_candidate_knowledge_num", type=int, default=20, help="Cand know를 몇개 쓸지 여부 ")
+    parser.add_argument("--kers_candidate_knowledge_shuffle", type=str, default="TRUE", help="Cand know를 shuffle할지 말지 여부 ")
     return parser
 
 
@@ -210,13 +211,13 @@ def main():
         #     # test_dataset_aug  = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', 'gt_test_pred_aug_dataset.pkl'))
         #     train_dataset_aug = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', 'kers_train_gt_pred_auged_dataset.pkl'))
         #     test_dataset_aug = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', 'kers_test_gt_pred_auged_dataset.pkl'))
-        # train_dataset_aug = pseudo_knowledge_shuffle(train_dataset_aug)
-        # test_dataset_aug = pseudo_knowledge_shuffle(test_dataset_aug)
+        # train_dataset_aug = pseudo_knowledge_shuffle(train_dataset_aug, mode='train')
+        # test_dataset_aug = pseudo_knowledge_shuffle(test_dataset_aug, mode='test')
         # args.task = 'knowledge'
         # train_dataset_aug_pred, test_dataset_aug_pred
         logger.info("**Shuffle Pseudo knowledge order**")
-        train_dataset_aug = pseudo_knowledge_shuffle(args, train_dataset_aug_pred)
-        test_dataset_aug = pseudo_knowledge_shuffle(args, test_dataset_aug_pred)
+        train_dataset_aug = pseudo_knowledge_shuffle(args, train_dataset_aug_pred, mode='train')
+        test_dataset_aug = pseudo_knowledge_shuffle(args, test_dataset_aug_pred, mode='test')
         logger.info(f'Input with knowledges: {args.inputWithKnowledge}, Input with topic: {args.inputWithTopic}')
         kers_knowledge_retrieve.train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, test_dataset_aug, train_knowledgeDB, all_knowledgeDB)
 
@@ -254,8 +255,8 @@ def main():
     
     logger.info("Train, Test Knowledge Shuffle!!!!! ")
     logger.info(f"Augmented Train dataset: {len(train_dataset_resp)}, Test dataset: {len(test_dataset_resp)}")
-    train_dataset_resp = pseudo_knowledge_shuffle(args, train_dataset_resp)
-    test_dataset_resp = pseudo_knowledge_shuffle(args, test_dataset_resp)
+    train_dataset_resp = pseudo_knowledge_shuffle(args, train_dataset_resp, mode='train')
+    test_dataset_resp = pseudo_knowledge_shuffle(args, test_dataset_resp, mode='test')
     logger.info(f"Augmented Train dataset: {len(train_dataset_resp)}, Test dataset: {len(test_dataset_resp)}")
     logger.info(f"train: {len(train_dataset_resp)}, test: {len(test_dataset_resp)}, Test Pseudo Hit@1: {sum([i['candidate_knowledges'][0] == i['target_knowledge'] for i in test_dataset_aug_pred]) / len(test_dataset_aug_pred):.4f}")
     train_datamodel_resp = Kers_Resp_Dataset(args, train_dataset_resp, tokenizer, mode='train')
@@ -274,16 +275,16 @@ def main():
     tasks=['resp']
     for task in tasks:
         max_train_hit1 = 0
-        test_loss = 1000000000
+        bleu_epoch = 0
         best_outputs = None
         best_epoch = 0
-        if args.do_pretrain:
-            saved_model_path = os.path.join(args.home, 'model_save', f'BART_KERS_Pretrained_{args.gpu}.pth')
+        if args.kers_pretrain_epochs:
+            saved_model_path = os.path.join(args.home, 'model_save', f'BART_KERS_Pretrained_Know{args.kers_candidate_knowledge_num}_EPO{args.kers_pretrain_epochs}.pth')
             if not os.path.exists(saved_model_path): 
-                logger.info("DO PRE-TRAIN")
-                for epoch in range(5):
+                logger.info(f"DO PRE-TRAIN {args.kers_pretrain_epochs} epochs")
+                for epoch in range(args.kers_pretrain_epochs):
                     epoch_play(args, tokenizer, model, train_dataloader, optimizer, scheduler, epoch, task, mode='pretrain')
-                torch.save(model.state_dict(), os.path.join(args.home, 'model_save', f'BART_KERS_Pretrained_{args.gpu}.pth'))
+                torch.save(model.state_dict(), saved_model_path)
             else: model.load_state_dict(torch.load(saved_model_path, map_location=args.device))
         for epoch in range(args.num_epochs):
             args.data_mode = 'train'
@@ -296,9 +297,9 @@ def main():
                 args.data_mode = 'test'
                 model.eval()
                 with torch.no_grad():
-                    loss, perplexity = epoch_play(args, tokenizer, model, test_dataloader, optimizer, scheduler, epoch, task, mode='test')
-                    if test_loss >= loss:
-                        test_loss = loss
+                    loss, bleu1 = epoch_play(args, tokenizer, model, test_dataloader, optimizer, scheduler, epoch, task, mode='test')
+                    if bleu_epoch <= bleu1:
+                        bleu_epoch = bleu1
                         best_epoch = epoch
                         torch.save(model.state_dict(), os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth'))
                         logger.info(f"Loss: {loss}, Model Saved in {os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth')}")
@@ -306,7 +307,7 @@ def main():
                 #     logger.info(f"Epoch_{epoch} {args.data_mode}  {i}")
 
         logger.info(f"")
-    return test_loss, best_epoch
+    return bleu_epoch, best_epoch
 
 
 def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch, task, mode):
@@ -370,10 +371,11 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
     save_preds(args, contexts, task_preds, epoch=epoch, new_knows=None, real_resp=resps, goals=types, knowledges=knowledges, mode=mode)
     if mode=='test' : 
 
-        report = evaluator.report()
+        report_all = evaluator.report()
         report_text = [f"TOTAL_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
-                       f"TOTAL_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
-        logger.info(report_text)
+                       f"TOTAL_{epoch}_{mode}: {report_all['bleu@1']:.3f},  {report_all['bleu@2']:.3f},  {report_all['bleu@3']:.3f},  {report_all['bleu@4']:.3f},  {report_all['dist@1']:.3f},  {report_all['dist@2']:.3f},  {report_all['dist@3']:.3f},  {report_all['dist@4']:.3f}"]
+        logger.info(report_text[0])
+        logger.info(report_text[1])
 
         report_type = evaluator.report_ByType()
         # report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
@@ -382,7 +384,6 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         for each_type, report in report_type.items():
             reports_text = f"NEW_{epoch}_{mode:^5}_{each_type:^21}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}, Count: {report['sent_cnt']}"
             logger.info(reports_text)
-
         # for i in report:
         #     logger.info(f"{i}: {report[i]}")
         evaluator.reset_metric()
@@ -390,6 +391,8 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         _, _, resp_topic_str = evaluator.gen_resp_topic(args, real_resps=resps, types=types, topics=topics, gen_resps=task_preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
         for i in resp_topic_str:
             logger.info(f"HITGEN: {i}")
+        return loss, report_all['bleu@1']
+    
     return loss, perplexity
 
 
@@ -421,13 +424,15 @@ def save_preds(args, context, pred_words=None, epoch=None, new_knows=None, real_
             f.write(f"\n")
     return
 
-def pseudo_knowledge_shuffle(args, dataset_aug):
-    logger.info(f"************ Candidate knowledge Shuffled!! {len(dataset_aug)}, Num-Shuffled knowledge: {args.kers_candidate_knowledge_num} ************")
+def pseudo_knowledge_shuffle(args, dataset_aug, mode='train'):
+    if mode=='train' and args.kers_candidate_knowledge_shuffle: logger.info(f"************ {mode.upper()} Dataset Length!! {len(dataset_aug)}, Candidate Num-Shuffled knowledge: {args.kers_candidate_knowledge_num} *Shuffled*Shuffled*Shuffled*Shuffled*Shuffled*******")
+    else: logger.info(f"************ {mode.upper()} Dataset Length !! {len(dataset_aug)}, Candidate Num-knowledge: {args.kers_candidate_knowledge_num} ************")
     shuffled_dataset = deepcopy(dataset_aug)
     for data in shuffled_dataset:
         data['candidate_knowledge_label'] = deepcopy(data['candidate_knowledges'][0])
         tmp = [[k, c] for k, c in zip(data['candidate_knowledges'][:args.kers_candidate_knowledge_num], data['candidate_confidences'][:args.kers_candidate_knowledge_num])]
-        shuffle(tmp)
+        if mode=='train' and args.kers_candidate_knowledge_shuffle: 
+            shuffle(tmp)
         data['candidate_knowledges'] = [i[0] for i in tmp]
         data['candidate_confidences'] = [i[1] for i in tmp]
     return shuffled_dataset

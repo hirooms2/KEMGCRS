@@ -1,6 +1,21 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+python kers_main.py --task=resp --version=2 --kers_batch_size=10 --kers_generator=facebook/bart-large --device=0 --kers_candidate_knowledge_num=1  --log_name=KERS_PsdShuffledTop1
+python kers_main.py --task=resp --version=2 --kers_batch_size=10 --kers_generator=facebook/bart-large --device=1 --kers_candidate_knowledge_num=2  --log_name=KERS_PsdShuffledTop2
+python kers_main.py --task=resp --version=2 --kers_batch_size=10 --kers_generator=facebook/bart-large --device=2 --kers_candidate_knowledge_num=5  --log_name=KERS_PsdShuffledTop5
+python kers_main.py --task=resp --version=2 --kers_batch_size=10 --kers_generator=facebook/bart-large --device=3 --kers_candidate_knowledge_num=10 --log_name=KERS_PsdShuffledTop10
+python kers_main.py --task=resp --version=2 --kers_batch_size=10 --kers_generator=facebook/bart-large --device=1 --kers_candidate_knowledge_num=20 --log_name=KERS_PsdShuffledTop20
+python kers_main.py --task=resp --version=2 --kers_batch_size=10 --kers_generator=facebook/bart-large --device=0 --kers_candidate_knowledge_num=2 --log_name=KERS_PsdTop2 --kers_candidate_knowledge_shuffle=''
+
+# ---------------------- 20231130 ----------------#
+# python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=5  --log_name=KERS_PT5_PsdShuffledTop5 --kers_pretrain_epochs=5
+# python kers_main.py --task=resp --version=2 --device=1 --kers_candidate_knowledge_num=10 --log_name=KERS_PT5_PsdShuffledTop10 --kers_pretrain_epochs=5
+# python kers_main.py --task=resp --version=2 --device=2 --kers_candidate_knowledge_num=15 --log_name=KERS_PT5_PsdShuffledTop15 --kers_pretrain_epochs=5
+# python kers_main.py --task=resp --version=2 --device=3 --kers_candidate_knowledge_num=15 --log_name=KERS_PT5_PsdShuffledTop15 --kers_pretrain_epochs=5
+
+
+
 # python main.py --gpu=1 --task=resp --rag_lr=1e-5 --rag_epochs=13 --rag_onlyDecoderTune --log_name=DPROUR_RAG_TOKEN --knowledge_method=dpr --rag_our_model=dpr --rag_model=token
 # python main.py --gpu=1 --task=resp --rag_lr=1e-5 --rag_epochs=13 --rag_onlyDecoderTune --log_name=Contriever_RAG_TOKEN --knowledge_method=contriever --rag_our_model=contriever --rag_model=token
 # python main.py --gpu=1 --task=resp --rag_lr=1e-5 --rag_epochs=13 --rag_onlyDecoderTune --log_name=CotMAE_RAG_TOKEN --knowledge_method=cotmae --rag_our_model=cotmae --rag_model=token
@@ -10,10 +25,10 @@
 
 # ---------------------- 20231121 ----------------#
 
-python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=20 --log_name=KERS_PsdShuffledTop20
-python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=10 --log_name=KERS_PsdShuffledTop10
-python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=5 --log_name=KERS_PsdShuffledTop5
-python kers_main.py --task=resp --version=2 --gpu=0  --log_name=PreTrain_KERS_with_20ShuffledKnowledge --do_pretrain 
+# python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=20 --log_name=KERS_PsdShuffledTop20
+# python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=10 --log_name=KERS_PsdShuffledTop10
+# python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=5 --log_name=KERS_PsdShuffledTop5
+# python kers_main.py --task=resp --version=2 --gpu=0  --log_name=PreTrain_KERS_with_20ShuffledKnowledge --do_pretrain 
 
 # python main.py --gpu=1 --task=resp --log_name=DPROUR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
 # python main.py --gpu=1 --task=resp --log_name=Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
