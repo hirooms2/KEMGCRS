@@ -40,7 +40,7 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     from models.ours.retriever import Retriever
     from json import dumps
     from transformers import AutoTokenizer, AutoModel
-    
+    args.batch_size=400
     logger.info(f"Model_Name: {args.model_name}")
     if 'contriever' in args.knowledge_method: 
     # if args.contriever or 'contriever' in args.model_name.lower():
@@ -74,7 +74,7 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     logger.info(f"Get Pseudo Label {args.pseudo_labeler.upper()}")
     train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
-    eval_pred_loads(test_dataset_pred_aug, task='know')
+    eval_pred_loads(test_dataset_pred_aug, task='label')
 
     if args.debug: train_dataset_pred_aug, test_dataset_pred_aug = train_dataset_pred_aug[:30], test_dataset_pred_aug[:30]
 
@@ -87,20 +87,24 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
 
 
     retriever = Retriever(args, bert_model)
+    logger.info(f"Knowledge Method: {args.knowledge_method}, Model name: {args.model_name} , Topic_Conf: {args.topic_conf} Topic_Top-K: {args.topk_topic}")
     retriever.load_state_dict(torch.load(f"{args.saved_model_path}/{args.model_name}_know.pt", map_location='cuda:0'), strict=False)
+    logger.info(f"Loaded model: {args.saved_model_path}/{args.model_name}_know.pt")
 
     with torch.no_grad():
         retriever.to(args.device)
         hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
-        save_pred_know_json(os.path.join(args.output_dir, f"en_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
+        save_pred_know_json(os.path.join(args.output_dir, f"en_{args.model_name}_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
         hitdic_ratio, test_output_str, test_top10_cand_knows, test_top10_cand_knows_conf = eval_know(args, test_dataloader_retrieve, retriever, all_knowledgeDB, tokenizer, data_type='test')
-        save_pred_know_json(os.path.join(args.output_dir, f"en_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
+        save_pred_know_json(os.path.join(args.output_dir, f"en_{args.model_name}_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
     for i in test_output_str:
         logger.info(f"{args.model_name}: {i}")
     
 
 def save_pred_know_json(data_path, top10_cand_knows, top10_cand_knows_conf):
     from json import dumps
+    if os.path.exists(data_path): data_path = data_path[:-4]+"_copy.txt"
+    logger.info(f"New output: {data_path}")
     with open(data_path, 'a', encoding='utf8') as fw:
         for k,c in zip(top10_cand_knows, top10_cand_knows_conf):
             fw.write(dumps({'predicted_know' : k[:5],'predicted_know_confidence' : c[:5]}) + "\n")
