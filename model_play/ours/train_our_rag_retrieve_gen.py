@@ -270,12 +270,15 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
         rag_model.eval()
         with torch.no_grad():
             if args.rag_our_model or args.rag_our_model:
-                hitDic, hitdic_ratio, output_str = epoch_play_by_context_input_ids(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
+                hitDic, report, output_str = epoch_play_by_context_input_ids(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
+                if best_hitdic_ratio['bleu@2'] <= report['bleu@2']:
+                    best_hitdic_ratio = hitdic_ratio
+                    best_hitdic_str = output_str
             else:
                 hitDic, hitdic_ratio, output_str = epoch_play(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
-            if best_hitdic_ratio['total']['hit1'] <= hitdic_ratio['total']['hit1']:
-                best_hitdic_ratio = hitdic_ratio
-                best_hitdic_str = output_str
+                if best_hitdic_ratio['total']['hit1'] <= hitdic_ratio['total']['hit1']:
+                    best_hitdic_ratio = hitdic_ratio
+                    best_hitdic_str = output_str
         if epoch == 0: rag_model_weight_logging(args, rag_model, epoch, 'after_test', faiss_dataset)
 
     for i in best_hitdic_str:
@@ -293,14 +296,8 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
 
     for batch in tqdm(data_loader, desc=f"Epoch {epoch}__{mode}", bar_format=' {l_bar} | {bar:23} {r_bar}'):
         source_ids, source_mask, target_ids = batch["input_ids"].to(args.device), batch["attention_mask"].to(args.device), batch["response"].to(args.device)
-        outputs = model(input_ids=source_ids,
-                        attention_mask=source_mask,
-                        labels=target_ids,  #
-                        output_retrieved=True,
-                        n_docs=5,
-                        ##
-                        ##
-                        )
+        outputs = model(input_ids=source_ids, attention_mask=source_mask, labels=target_ids,  #
+                        output_retrieved=True, n_docs=5, )
         retrieved_docs_pt = outputs.retrieved_doc_ids.data
 
         loss = outputs['loss'].mean()
@@ -528,11 +525,9 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
         outputs = model(
             context_input_ids=batch["context_input_ids"].reshape(-1, args.rag_context_input_length).to(args.device)
             , context_attention_mask=batch["context_input_attention_mask"].reshape(-1, args.rag_context_input_length).to(args.device)
-            , decoder_input_ids=batch["response"].to(args.device)
-            , doc_scores=batch['context_doc_scores'].to(args.device)  # [B,topk]
-            , labels=target_ids
+            , decoder_input_ids=batch["response"].to(args.device), doc_scores=batch['context_doc_scores'].to(args.device)  # [B,topk]
+            , labels=target_ids , n_docs=batch["context_doc_scores"].size()[-1]
             # ,n_docs=3
-            , n_docs=batch["context_doc_scores"].size()[-1]
         )
 
         loss = outputs['loss'].mean()
@@ -589,7 +584,7 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
         report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
                        f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
         output_str.extend(report_text)
-        total_output.append(f"{report_text[-1]}")
+        total_output.append(f"BLEU: 1,2,3,4 | Dist: 1,2,3,4: {report_text[-1]}")
 
         report_type = evaluatortype.report_ByType()
         output_str.append(f"NEW_{epoch}_{mode:^5}_{'each_type':^21}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4, count")
@@ -601,12 +596,12 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
         evaluatortype.reset_metric()
 
         _, _, resp_topic_str = evaluatortype.gen_resp_topic(args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resp, topic_in_resps=topic_in_resps, p_topics=p_topics)
-        total_output.append(f"{resp_topic_str[-1]}")
         for i in output_str:
             logger.info(f"{mode}_{epoch} {i}")
         for i in resp_topic_str:
             logger.info(f"HitGen_{mode}_{epoch} {i}")
-        total_output.append(resp_topic_str[-2])
+        total_output.append(f"{resp_topic_str[-1]}")
+        total_output.append(f"HITGEN: {resp_topic_str[-2]}")
         logger.info(report_text[0])
         logger.info(report_text[1])
         logger.info("======------------============------------============------------============------------============------------======")
@@ -614,9 +609,14 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
             logger.info(f"TOTAL_{epoch}: {i}")
         logger.info("======------------============------------============------------============------------============------------======")
         utils.write_pkl({'contexts': contexts, 'real_resp': real_resps, 'gen_resp': gen_resp, 'top5_docs': top5_docs, 'label_gold_knowledges': label_gold_knowledges, 'types': types}, os.path.join(args.output_dir, f"{epoch}_{mode}_inout.pkl"))
-    logger.info(f"{mode} Loss: {epoch_loss:.3f}, PPL: {perplexity:.3f}")
-    save_preds(args, contexts, top5_docs, label_gold_knowledges, epoch=epoch, new_knows=new_knows, real_resp=real_resps, gen_resps=gen_resp, mode=mode, rag_contexts=rag_contexts, rag_doc_scores=rag_doc_scores, topics=topics)
-    return hitdic, hitdic_ratio, output_str  # output_strings, hit1_ratio, total_hit1, total_hit3, total_hit5, total_hit1_new, total_hit3_new, total_hit5_new
+    if mode=='train':
+        logger.info(f"{mode} Loss: {epoch_loss:.3f}, PPL: {perplexity:.3f}")
+        save_preds(args, contexts, top5_docs, label_gold_knowledges, epoch=epoch, new_knows=new_knows, real_resp=real_resps, gen_resps=gen_resp, mode=mode, rag_contexts=rag_contexts, rag_doc_scores=rag_doc_scores, topics=topics)
+        return hitdic, hitdic_ratio, output_str  # output_strings, hit1_ratio, total_hit1, total_hit3, total_hit5, total_hit1_new, total_hit3_new, total_hit5_new
+    else: # Test
+        logger.info(f"{mode} Loss: {epoch_loss:.3f}, PPL: {perplexity:.3f}")
+        save_preds(args, contexts, top5_docs, label_gold_knowledges, epoch=epoch, new_knows=new_knows, real_resp=real_resps, gen_resps=gen_resp, mode=mode, rag_contexts=rag_contexts, rag_doc_scores=rag_doc_scores, topics=topics)
+        return hitdic, report, output_str  # output_strings, hit1_ratio, total_hit1, total_hit3, total_hit5, total_hit1_new, total_hit3_new, total_hit5_new
 
 
 # -------------------------------------------#
@@ -703,8 +703,8 @@ class Rag_context_Dataset(Dataset):
             context_batch['context_doc_scores'] = []
             context_batch['context_knowledges'] = []
             for top_doc, top_conf in zip(top5_knows[:self.n_doc], top5_confs[:self.n_doc]):
-                # know_topic_token = self.tokenizer.generator(f"goal: {predicted_goal} | topic: {predicted_topic} | {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
-                know_topic_token = self.tokenizer.generator(f"Related knowledge: {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
+                know_topic_token = self.tokenizer.generator(f"goal: {predicted_goal} | topic: {predicted_topic} | {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
+                # know_topic_token = self.tokenizer.generator(f"Related knowledge: {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
                 dialog_token = self.tokenizer.generator(dialog).input_ids
                 ctx_input_token1 = know_topic_token + dialog_token[-(self.input_max_length - len(know_topic_token)):]
                 ctx_input_token = ctx_input_token1 + [gen_pad_id] * (self.input_max_length - len(ctx_input_token1))
