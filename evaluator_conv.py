@@ -180,14 +180,14 @@ class ConvEvaluator_ByType:
                         hitdic['total']['hit1_Rec'] += 1
                 
         hitdic_ratio = {goal_type: {'hit1_Rec': 0, 'hit1_Gen': 0, 'total': 0} for goal_type in typelist + ["Others", 'total']}
-        output_str = [f"                      hit1_Rec,  hit1_Gen,  total_cnt"]
+        output_str = [f"  HITGEN:                     hit1_Rec,  hit1_Gen,  total_cnt"]
         for key in hitdic.keys():
             if hitdic[key]['total']:
                 hitdic_ratio[key]['hit1_Gen'] = hitdic[key]['hit1_Gen'] / hitdic[key]['total']
                 hitdic_ratio[key]['hit1_Rec'] = hitdic[key]['hit1_Rec'] / hitdic[key]['total']
 
             hitdic_ratio[key]['total'] = hitdic[key]['total']
-            output_str.append(f"{key:^22}: {hitdic_ratio[key]['hit1_Rec']:.3f}, {hitdic_ratio[key]['hit1_Gen']:.3f}, {hitdic_ratio[key]['total']}")
+            output_str.append(f"HITGEN: {key:^22}: {hitdic_ratio[key]['hit1_Rec']:.3f}, {hitdic_ratio[key]['hit1_Gen']:.3f}, {hitdic_ratio[key]['total']}")
         output_str.append(f"(pred) Topic Hit Ratio: {sum([p == g for p, g in zip(p_topics, topics)]) / len(p_topics):.3f}")
         return hitdic, hitdic_ratio, output_str
 class Args:

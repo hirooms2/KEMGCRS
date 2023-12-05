@@ -108,7 +108,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     # test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'test_pred_aug_dataset.pkl'))
 
     logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
-    if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:50], test_dataset_aug_pred[:50]
+    if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:20], test_dataset_aug_pred[:20]
 
 
 
@@ -241,9 +241,10 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     optimizer = torch.optim.AdamW(rag_model.parameters(), lr=args.rag_lr, weight_decay=0.1, eps=5e-9)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_dc_step, gamma=args.lr_dc)
     best_hitdic_ratio = {'total': {'hit1': 0, 'hit3': 0, 'hit5': 0, 'hit1_new': 0, 'hit3_new': 0, 'hit5_new': 0, 'total': 0}}
-    best_hitdic_str = None
+    # best_hitdic_ratio = {'bleu@2':0}
+    best_hitdic_ratio, best_bleu_dic, hitdic_str, bleu_str, hitgen_str=None, {'bleu@2':0}, "","",""
+    best_hitdic_str = ""
     logger.info(f"Logging Epoch results:                      hit@1, hit@3, hit@5, hit_new@1, hit_new@3, hit_new@5")
-
     for epoch in range(args.rag_epochs):
         logger.info(f"RAG_LR: {args.rag_lr}")
         rag_model.train()
@@ -271,8 +272,8 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
         with torch.no_grad():
             if args.rag_our_model or args.rag_our_model:
                 hitDic, report, output_str = epoch_play_by_context_input_ids(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
-                if best_hitdic_ratio['bleu@2'] <= report['bleu@2']:
-                    best_hitdic_ratio = hitdic_ratio
+                if best_bleu_dic['bleu@2'] <= report['bleu@2']:
+                    best_bleu_dic = report
                     best_hitdic_str = output_str
             else:
                 hitDic, hitdic_ratio, output_str = epoch_play(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
@@ -588,8 +589,8 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
 
         report_type = evaluatortype.report_ByType()
         output_str.append(f"NEW_{epoch}_{mode:^5}_{'each_type':^21}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4, count")
-        for each_type, report in report_type.items():
-            reports_text = f"NEW_{epoch}_{mode:^5}_{each_type:^21}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}, Count: {report['sent_cnt']}"
+        for each_type, report_type in report_type.items():
+            reports_text = f"NEW_{epoch}_{mode:^5}_{each_type:^21}:  {report_type['bleu@1']:.3f},  {report_type['bleu@2']:.3f},  {report_type['bleu@3']:.3f},  {report_type['bleu@4']:.3f},  {report_type['dist@1']:.3f},  {report_type['dist@2']:.3f},  {report_type['dist@3']:.3f},  {report_type['dist@4']:.3f}, Count: {report_type['sent_cnt']}"
             output_str.append(reports_text)
 
         # evaluator.reset_metric()
@@ -614,6 +615,7 @@ def epoch_play_by_context_input_ids(args, tokenizer, model, data_loader, optimiz
         save_preds(args, contexts, top5_docs, label_gold_knowledges, epoch=epoch, new_knows=new_knows, real_resp=real_resps, gen_resps=gen_resp, mode=mode, rag_contexts=rag_contexts, rag_doc_scores=rag_doc_scores, topics=topics)
         return hitdic, hitdic_ratio, output_str  # output_strings, hit1_ratio, total_hit1, total_hit3, total_hit5, total_hit1_new, total_hit3_new, total_hit5_new
     else: # Test
+        output_str.extend(resp_topic_str)
         logger.info(f"{mode} Loss: {epoch_loss:.3f}, PPL: {perplexity:.3f}")
         save_preds(args, contexts, top5_docs, label_gold_knowledges, epoch=epoch, new_knows=new_knows, real_resp=real_resps, gen_resps=gen_resp, mode=mode, rag_contexts=rag_contexts, rag_doc_scores=rag_doc_scores, topics=topics)
         return hitdic, report, output_str  # output_strings, hit1_ratio, total_hit1, total_hit3, total_hit5, total_hit1_new, total_hit3_new, total_hit5_new
