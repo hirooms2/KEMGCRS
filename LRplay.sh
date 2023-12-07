@@ -1,9 +1,9 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
-# python main.py --gpu=1 --task=resp --log_name=DPROUR_RAG_OnlyDoc_Dialog --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+python main.py --gpu=0 --task=resp --log_name=DPROUR_RAG_OnlyDoc_Dialog --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
 python main.py --gpu=0 --task=resp --log_name=CotMAE_RAG_OnlyDoc_Dialog --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
-python main.py --gpu=1 --task=resp --log_name=Contriever_RAG_OnlyDoc_Dialog --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+python main.py --gpu=0 --task=resp --log_name=Contriever_RAG_OnlyDoc_Dialog --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
 
 # python main.py --gpu=0 --task=resp --rag_lr=1e-5 --rag_epochs=13 --rag_onlyDecoderTune --log_name=DPROUR_RAG_OnlyDocDialog_Top1 --knowledge_method=dpr --rag_our_model=dpr --rag_model=token --idea=top1
 

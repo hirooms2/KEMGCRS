@@ -179,3 +179,5 @@ temp_code/hitgen/model/unimind1
 temp_code/hitgen/model/c2dpr_our
 temp_code/hitgen/model/rag
 temp_code/hitgen/model/ragdpr
+lora-alpaca/*
+wandb/*
