@@ -1,5 +1,7 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
+python llama_main_finetune.py --log_name=Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
+
 
 python llama_main_finetune.py --log_name=Llama7b_chat --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf
 python llama_main_finetune.py --log_name=Llama7b_chat_len512 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512

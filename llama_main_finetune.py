@@ -237,15 +237,16 @@ class LLaMaEvaluator:
             batched_labels = self.tokenizer(batch[1], padding=True,max_length=self.args.llama_input_maxlen, truncation=True, return_tensors="pt") # truncation=True, max_length=cutoff_len, padding=False
             input_ids = batched_inputs["input_ids"].to(self.args.device_id)
             attention_mask = batched_inputs["attention_mask"].to(self.args.device_id)
+            
             responses_gen = self.evaluate(input_ids, attention_mask, model, max_new_tokens=self.args.max_new_tokens, num_beams=self.args.num_beams)
-            responses = np.reshape(responses_gen, (-1, self.args.num_beams)).tolist()
+            # responses = np.reshape(responses_gen, (-1, self.args.num_beams)).tolist()
             labels = batch[1]
             pred_aug = batch[2]
             
 
             contexts.extend(batch[0])
             real_resps.extend(batch[1])
-            gen_resps.extend([i[0] for i in responses])
+            gen_resps.extend(responses_gen)
             batch_types = pred_aug['goal']
             types.extend(batch_types)
             topic_in_resps.extend([ ttt.lower() in rrr.lower() for ttt,rrr in zip(pred_aug['topic'], pred_aug['response'])])
@@ -253,7 +254,7 @@ class LLaMaEvaluator:
             p_topics.extend(pred_aug['predicted_topic'][0])
             
             
-            evaluatortype.evaluate(batched_inputs.input_ids, batched_labels.input_ids, batch_types, log=True)
+            evaluatortype.evaluate(preds=responses_gen, labels=batch[1], types = batch_types, log=True, is_text=True)
             
             # if self.args.write:
             #     for i in generated_results:
@@ -400,9 +401,9 @@ def llama_finetune(args, tokenizer, evaluator,
 
     def generate_and_tokenize_prompt(data_point):
         full_prompt = prompter.generate_prompt(
-            data_point["instruction"],
-            data_point["input"],
-            data_point["output"],
+            instruction=data_point["instruction"],
+            input=data_point["input"],
+            label=data_point["output"]
             # data_point['isNew']
         )
         tokenized_full_prompt = tokenize(full_prompt)
@@ -446,10 +447,10 @@ def llama_finetune(args, tokenizer, evaluator,
     model = prepare_model_for_int8_training(model)
 
     config = LoraConfig(
-        r=lora_r, lora_alpha=lora_alpha,
+        r=lora_r,   lora_alpha=lora_alpha,
         target_modules=lora_target_modules,
         lora_dropout=lora_dropout,
-        bias="none", task_type="CAUSAL_LM", )
+        bias="none",    task_type="CAUSAL_LM", )
 
     model = get_peft_model(model, config)
 
@@ -534,7 +535,6 @@ def add_ours_specific_args(parser=None):
     # parser.add_argument("--uni_max_target_length", type=int, default=128, help=" output len: 128 ")
     # parser.add_argument("--uni_num_beams", type=int, default=1, help=" num beam ") # Only one
 
-    # parser.add_argument("--lora_weights", type=str, default='')
     parser.add_argument("--device", type=str, default='0')
 
     parser.add_argument('--llama_input_maxlen', type=int, default=256)
@@ -557,7 +557,8 @@ def add_ours_specific_args(parser=None):
     parser.add_argument('--model_name', type=str, default='llama')
     parser.add_argument('--num_device', type=int, default=1)
     parser.add_argument("--write", action='store_true', help="Whether to write of results.")
-    parser.add_argument("--lora_weights", type=str, default='lora-alpaca')
+    parser.add_argument("--lora_path", type=str, default='lora-alpaca')
+    parser.add_argument("--lora_weights", type=str, default='')
     parser.add_argument('--mode', type=str, default='train_test', choices=['train', 'test', 'valid', 'train_test'])
     parser.add_argument('--log_name', type=str, default='')
     parser.add_argument('--prompt', type=str, default='withoutCoT')
@@ -601,8 +602,8 @@ def main(args=None):
     args.log_name = f'{args.time}_{f"DEBUG_{args.log_name}" if args.debug else args.log_name}_{args.model_name.replace("/", "_")}_log.txt'  # TIME_LOGNAME_MODELNAME_log.txt
     args.device = f'cuda:{args.device}'
     args.device_id = args.device
-    args.lora_path = os.path.join(args.home, args.lora_weights)
-    args.lora_weights = os.path.join(args.home, args.lora_weights)
+    args.lora_path = os.path.join(args.home, args.lora_path)
+    args.lora_weights = os.path.join(args.lora_path, args.lora_weights)
     initLogging(args)
     mylogger.info("Read raw file")
     topicDic , goalDic = readDic(os.path.join(args.data_dir, "topic2id.txt")), readDic(os.path.join(args.data_dir, "goal2id.txt"))

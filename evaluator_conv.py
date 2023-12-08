@@ -4,6 +4,8 @@ from nltk.translate.bleu_score import sentence_bleu
 from collections import defaultdict
 from transformers import AutoTokenizer
 from utils import read_pkl
+import warnings
+warnings.filterwarnings('ignore')
 class ConvEvaluator:
     def __init__(self, tokenizer, log_file_path=None):
         self.tokenizer = tokenizer
@@ -75,13 +77,17 @@ class ConvEvaluator_ByType:
             self.log_file = open(log_file_path, 'w', buffering=1, encoding='utf-8')
             self.log_cnt = 0
 
-    def evaluate(self, preds, labels, types, log=False, start_id=0):
-        decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
-        decoded_preds = [decoded_pred.replace('<pad>', '').replace('<|endoftext|>', '') for decoded_pred in decoded_preds]
-        decoded_preds = [pred.strip() for pred in decoded_preds]
-        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
-        decoded_labels = [decoded_label.replace('<pad>', '').replace('<|endoftext|>', '') for decoded_label in decoded_labels]
-        decoded_labels = [label.strip() for label in decoded_labels]
+    def evaluate(self, preds, labels, types, log=False, start_id=0, is_text=False):
+        if is_text: 
+            decoded_preds = preds
+            decoded_labels = labels
+        else:
+            decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
+            decoded_preds = [decoded_pred.replace('<pad>', '').replace('<|endoftext|>', '') for decoded_pred in decoded_preds]
+            decoded_preds = [pred.strip() for pred in decoded_preds]
+            decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+            decoded_labels = [decoded_label.replace('<pad>', '').replace('<|endoftext|>', '') for decoded_label in decoded_labels]
+            decoded_labels = [label.strip() for label in decoded_labels]
 
         if log and hasattr(self, 'log_file'):
             for pred, label, type in zip(decoded_preds, decoded_labels, types):
