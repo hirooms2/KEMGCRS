@@ -62,18 +62,15 @@ class Prompter(object):
             self.template = {
                 "description": "CRS recommendation template."
                 ,"prompt_input": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Input:\n{input}"
-                ,"prompt_no_input": "Pretend you are a recommender system. I will give you a conversation between a user and you (a recommender system). \n Based on the conversation, create system's response. \n Here is the conversation: \n {instruction} \n\n### Response:" # Candidate items: \n {negItems}",
-                ,"response_split": "### Response:"
+                ,"prompt_no_input": "I will give you a conversation between a user and system (a recommender system). \n Based on the conversation, create system's response. \n Here is the conversation: \n {instruction}" # Candidate items: \n {negItems}",
+                ,"response_split": ""
                 }
         if self._verbose: mylogger.info(f"Using prompt template {template_name}: {self.template['description']}")
 
     def generate_prompt(
-            self,
-            instruction: str,
-            input: Union[None, str] = None,
-            label: Union[None, str] = None,
+            self, instruction: str, input: Union[None, str] = None, label: Union[None, str] = None,
             # isNew: bool = False,
-    ) -> str:
+            ) -> str:
         # returns the full prompt from instruction and optional input
         # if a label (=response, =output) is provided, it's also appended.
         if input: res = self.template["prompt_input"].format(instruction=instruction, input=input)
@@ -166,9 +163,9 @@ class LLaMaEvaluator:
                       lora_weights: str = "",
                       server_name: str = "0.0.0.0",  # Allows to listen on all interfaces by providing '0.
                       share_gradio: bool = False, ):
-        mylogger.info(f'prepare new model for evaluating || Model: {base_model}, lora_weights: {lora_weights}')
         base_model = self.args.base_model
         if self.args.lora_weights != "": lora_weights = self.args.lora_weights
+        mylogger.info(f'prepare new model for evaluating || Model: {base_model}, lora_weights: {lora_weights}')
         model_cache_dir = os.path.join(self.args.home, 'model_cache', base_model)
         assert (base_model), "Please specify a --base_model, e.g. --base_model='huggyllama/llama-7b'"
         
@@ -209,8 +206,9 @@ class LLaMaEvaluator:
         with torch.no_grad():
             generation_output = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config, return_dict_in_generate=True, output_scores=True, max_new_tokens=max_new_tokens,)
         s = generation_output.sequences
-        output = self.tokenizer.batch_decode(s, skip_special_tokens=True)
-        return [self.prompter.get_response(i) for i in output]
+        # output = self.tokenizer.batch_decode(s, skip_special_tokens=True)
+        # return [self.prompter.get_response(i) for i in output]
+        return self.tokenizer.batch_decode(s[:,input_ids.size()[-1]:], skip_special_tokens=True)
 
     def test(self, model=None, epoch=None):
         mode='test'
@@ -230,7 +228,7 @@ class LLaMaEvaluator:
         types, topics, p_topics = [], [], []
         topic_in_resps = []
         total_output=[]
-        evaluatortype = ConvEvaluator_ByType(tokenizer= self.tokenizer, log_file_path=os.path.join(self.args.lora_weights, f"{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
+        evaluatortype = ConvEvaluator_ByType(tokenizer= self.tokenizer, log_file_path=os.path.join(self.args.lora_weights, f"{self.args.time}_{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
         for batch in tqdm(self.dataloader, bar_format=' {percentage:3.0f} % | {bar:23} {r_bar}'):
             generated_results = []
             batched_inputs = self.tokenizer(batch[0], padding=True,max_length=self.args.llama_input_maxlen, truncation=True, return_tensors="pt")
@@ -313,7 +311,8 @@ def llama_finetune(args, tokenizer, evaluator,
         output_dir: str = "/lora-alpaca",
         # training hyperparams
         batch_size: int = 128,
-        num_epochs: int = 3, learning_rate: float = 3e-4, cutoff_len: int = 256,
+        num_epochs: int = 3, learning_rate: float = 3e-4, 
+        cutoff_len: int = 256,
         val_set_size: int = 0,
         # lora hyperparams
         lora_r: int = 8,
@@ -388,7 +387,8 @@ def llama_finetune(args, tokenizer, evaluator,
     # if len(wandb_project) > 0: os.environ["WANDB_PROJECT"] = wandb_project
     # if len(wandb_watch) > 0: os.environ["WANDB_WATCH"] = wandb_watch
     # if len(wandb_log_model) > 0: os.environ["WANDB_LOG_MODEL"] = wandb_log_model
-
+    tokenizer.truncation_side='left'
+    tokenizer.padding_side='left'
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings
         # but again, gotta move fast
@@ -429,6 +429,9 @@ def llama_finetune(args, tokenizer, evaluator,
         train_data = data.shuffle().map(generate_and_tokenize_prompt)
         val_data = None
     cache_dir = os.path.join(args.home, 'model_cache', base_model)
+    mylogger.info(f"Train instruction length avg: {sum([len(i) for i in train_data['instruction']])/len(train_data):.1f}")
+    mylogger.info(f"Train input length avg: {sum([len(i) for i in train_data['input']])/len(train_data):.1f}")
+    mylogger.info(f"Train label length avg: {sum([len(i) for i in train_data['output']])/len(train_data):.1f}")
     model = LlamaForCausalLM.from_pretrained(
         base_model,
         load_in_8bit=True,
@@ -627,89 +630,36 @@ def main(args=None):
                            prompt_template_name=args.prompt)
         if 'test' in args.mode:
             # 특정 weight 지정 없이, 모든 epoch 에 해당하는 weights test
-            if args.lora_weights[args.lora_weights.rfind('/') + 1:] != "lora-alpaca" and args.lora_weights[-1].isdigit() is False:
-                origin_lora_weights = args.lora_weights
-                for e in range(args.epoch):
-                    args.lora_weights = origin_lora_weights + '_Epoch' + str(int(e + 1))
-                    evaluator.test(epoch=e + 1)
-            elif 'train' in args.mode:
+            # if args.lora_weights[args.lora_weights.rfind('/') + 1:] != "lora-alpaca" and args.lora_weights[-1].isdigit() is False:
+            #     origin_lora_weights = args.lora_weights
+            #     for e in range(args.epoch):
+            #         args.lora_weights = origin_lora_weights + '_Epoch' + str(int(e + 1))
+            #         evaluator.test(epoch=e + 1)
+            if 'train' in args.mode: # Train끝나고 Test들어왔을 땐, 진행된 epoch 들에 대해 다 test 진행
                 for e in range(args.epoch):
                     args.lora_weights = os.path.join(args.lora_path, args.log_name + '_Epoch' + str(int(e + 1)))
                     evaluator.test(epoch=e + 1)
-            else:
-                if args.lora_weights[args.lora_weights.rfind('/') + 1:] == "lora-alpaca":  # default lora_weights (i.e., not-trained LLaMa)
+            else: # 그렇지 않을 땐 
+                if args.lora_weights[-1].isdigit() :  # default lora_weights (i.e., not-trained LLaMa)
+                    mylogger.info(f"Test at {args.lora_weights}")
+                # if args.lora_weights[args.lora_weights.rfind('/') + 1:] == "lora-alpaca":  # default lora_weights (i.e., not-trained LLaMa)
                     evaluator.test()
                 else:
-                    evaluator.test()
+                    origin_lora_weights_epochs = args.lora_weights[args.lora_weights.rfind('/') + 1:]
+                    weights_list = sorted(list(filter(lambda x: origin_lora_weights_epochs in x , os.listdir(args.lora_path))))
+                    sorted(weights_list)
+                    mylogger.info(f"<Weights list>: [{weights_list}]")
+                    for e, lora_weight_path in enumerate(weights_list):
+                        mylogger.info(f"Test at {args.lora_weights}")
+                        args.lora_weights = f"{os.path.join(args.lora_path, lora_weight_path)}"
+                        evaluator.test(epoch=e + 1)
 
+                    # for e in range(args.epoch):
+                    #     args.lora_weights = f"{os.path.join(args.lora_path, origin_lora_weights_epochs)}{str(int(e + 1))}"
+                    #     evaluator.test(epoch=e + 1)
+                        # evaluator.test()
 
-class LLM_RQ_Dataset(Dataset):# 20230918_BART-large_RQ
-    """ For Resp pipeline """
-    def __init__(self, args, pred_aug_dataset, tokenizer, mode='train', method='Llama', template=None):
-        super(Dataset, self).__init__()
-        self.args=args
-        self.tokenizer = tokenizer
-        self.mode=mode
-        self.method=method # unimind, bart, kers (Engligh DuRec Dataset)
-        self.pred_aug_dataset=pred_aug_dataset
-        self.input_max_length = args.llama_input_maxlen
-        self.target_max_length = 128
-        self.tokenizer.truncation_side = 'left'
-        self.postfix = "system: "
-        ## pipeline 고려하기 (predicted_goal, predicted_topic)
-        # prompt_no_input, response_split
-        self.instruction = template["prompt_no_input"] #"I'll give you a conversation between the user and the system."
-        self.post_prompt = template["response_split"] #"Generate an appropriate answer or recommendational response with one item from the system."
-
-    def __len__(self): return len(self.pred_aug_dataset)
-
-    def __getitem__(self, index):
-        data = self.pred_aug_dataset[index]
-        cbdicKeys = ['dialog', 'user_profile', 'response', 'goal', 'topic', 'situation', 'target_knowledge', 'candidate_knowledges', 'candidate_confidences']
-        dialog, user_profile, response, goal, topic, situation, target_knowledge, candidate_knowledges, candidate_confidences = [data[i] for i in cbdicKeys]
-        predicted_goal, predicted_topic = data['predicted_goal'][0], data['predicted_topic'][0]
-        pad_token_id = self.tokenizer.pad_token_id
-        dialog = dialog.replace('[SEP]', " ")
-        response = response.replace('[SEP]', " ")
-        
-        context_batch = defaultdict()
-        self.tokenizer.truncation_side='left'
-        
-        prefix_encoding = self.tokenizer.encode(self.instruction) # 16
-        input_sentence = self.tokenizer.encode(dialog)
-        postfix_encoding = self.tokenizer.encode(self.post_prompt) # 15
-        
-        
-        if len(input_sentence) + len(prefix_encoding) + len(postfix_encoding) < self.input_max_length: # PAD 추가
-            input_sentence = [pad_token_id] * (self.input_max_length - (len(input_sentence) + len(prefix_encoding) + len(postfix_encoding))) + input_sentence
-        else: # 자르기
-            input_sentence = input_sentence[-(self.input_max_length - len(prefix_encoding) - len(postfix_encoding)):] 
-            pass
-        input_sentence = prefix_encoding + input_sentence + postfix_encoding
-
-        
-        context_batch['input_ids'] = torch.LongTensor(input_sentence).to(self.args.device)
-        attention_mask = context_batch['input_ids'].ne(pad_token_id)
-        context_batch['attention_mask'] = attention_mask
-        
-
-        labels = response
-
-        labels = self.tokenizer(labels, max_length = self.target_max_length, padding='max_length', truncation=True)['input_ids']
-        context_batch['labels'] = labels
-        ## For Gen-Rec
-        # context_batch['pred_topic'] = self.args.taskDic['topic']['str'][predicted_topic]  # 받은 Predicted Topic
-        # context_batch['topic_in_resp'] = topic in response  # Topic이 response에 들어있는지 True, False 로 체크
-        
-        context_batch['response'] = [self.tokenizer.bos_token_id] + labels  # kobart <s> issue
-        
-        context_batch['goal_idx'] = self.args.goalDic['str'][goal]  # index로 바꿈
-        context_batch['topic_idx'] = self.args.topicDic['str'][topic]  # index로 바꿈
-        
-        for k, v in context_batch.items():
-            if not isinstance(v, torch.Tensor): context_batch[k] = torch.as_tensor(v, device=self.args.device)
-        return context_batch
-
+    print("END")
 
 if __name__ == '__main__':
     main()

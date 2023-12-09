@@ -1,14 +1,27 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
-python llama_main_finetune.py --log_name=Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
+
+CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
+
+# ---------------------- 20231209 ----------------#
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-08_145254_7b_len512_promptHJ_2e4_llama_log.txt_Epoch
+
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-08_145254_7b_len512_promptHJ_2e4_llama_log.txt_Epoch6
+
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_1e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --learning_rate=1e-4
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_1e5 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --learning_rate=1e-5 --mode=train_test --batch_size=8 # 터짐
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_2e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --learning_rate=2e-4 
 
 
-python llama_main_finetune.py --log_name=Llama7b_chat --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf
-python llama_main_finetune.py --log_name=Llama7b_chat_len512 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512
+# python llama_main_finetune.py --log_name=Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
 
-python main.py --gpu=0 --task=resp --log_name=DPROUR_RAG_OnlyDoc_Dialog --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
-python main.py --gpu=0 --task=resp --log_name=CotMAE_RAG_OnlyDoc_Dialog --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
-python main.py --gpu=0 --task=resp --log_name=Contriever_RAG_OnlyDoc_Dialog --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+
+# python llama_main_finetune.py --log_name=Llama7b_chat --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf
+
+# python main.py --gpu=0 --task=resp --log_name=DPROUR_RAG_OnlyDoc_Dialog --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+# python main.py --gpu=0 --task=resp --log_name=CotMAE_RAG_OnlyDoc_Dialog --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+# python main.py --gpu=0 --task=resp --log_name=Contriever_RAG_OnlyDoc_Dialog --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
 
 # python main.py --gpu=0 --task=resp --rag_lr=1e-5 --rag_epochs=13 --rag_onlyDecoderTune --log_name=DPROUR_RAG_OnlyDocDialog_Top1 --knowledge_method=dpr --rag_our_model=dpr --rag_model=token --idea=top1
 
