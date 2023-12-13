@@ -1,12 +1,19 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
-CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
+
+python kers_main.py --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Retrieve_1e-5"  --lr=1e-5 --gpu=1
+
+
+
+
+
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=10 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
 
 # ---------------------- 20231209 ----------------#
-# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-08_145254_7b_len512_promptHJ_2e4_llama_log.txt_Epoch
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_2e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-08_145254_7b_len512_promptHJ_2e4_llama_log.txt_Epoch
 
-# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-08_145254_7b_len512_promptHJ_2e4_llama_log.txt_Epoch6
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_2e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-08_145254_7b_len512_promptHJ_2e4_llama_log.txt_Epoch6
 
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_1e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --learning_rate=1e-4
