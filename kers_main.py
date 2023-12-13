@@ -36,7 +36,7 @@ def add_kers_specific_args(parser):
     parser.add_argument("--gt_max_length", type=int, default=256, help=" Goal-Topic input max_length ")
     parser.add_argument("--gt_batch_size", type=int, default=32, help=" Method ")
 
-    parser.add_argument("--kers_batch_size", type=int, default=32, help=" KERS BATCH SIZE ")
+    parser.add_argument("--kers_batch_size", type=int, default=8, help=" KERS BATCH SIZE ")
     parser.add_argument("--kers_input_length", type=int, default=256, help=" KERS BATCH SIZE ")
     parser.add_argument("--kers_retrieve_input_length", type=int, default=768, help=" Method ")
     # parser.add_argument("--TopicTask_Train_Prompt_usePredGoal", action='store_true', help="Topic prediction시 Predicted goal 사용여부 (Train)")
@@ -120,6 +120,7 @@ def main():
     logger.info("Model Call")
     if 'skt' in args.bert_name or args.version=='ko':
         from kobert_tokenizer import KoBERTTokenizer
+        args.bert_name='skt/kobert-base-v1'
         tokenizer = KoBERTTokenizer.from_pretrained(args.bert_name, cache_dir=os.path.join(args.home, "model_cache", args.bert_name))
         bert_model = BertModel.from_pretrained(args.bert_name, cache_dir=os.path.join(args.home, "model_cache", args.bert_name))
     else:
@@ -133,21 +134,21 @@ def main():
     bert_model.resize_token_embeddings(len(tokenizer))
     args.hidden_size = bert_model.config.hidden_size  # BERT large 쓸 때 대비
 
-    logger.info("Read raw file")
-    topicDic = data_utils.readDic(os.path.join(args.data_dir, "topic2id_new.txt"))
-    goalDic = data_utils.readDic(os.path.join(args.data_dir, "goal2id_new.txt"))
-    args.topicDic = topicDic
-    args.goalDic = goalDic
-    args.topic_num = len(topicDic['int'])
-    args.goal_num = len(goalDic['int'])
-    args.taskDic = {'goal': goalDic, 'topic': topicDic}
-
     # logger.info("Read raw file")
-    if 'skt' in args.bert_name:
+    # topicDic = data_utils.readDic(os.path.join(args.data_dir, "topic2id_new.txt"))
+    # goalDic = data_utils.readDic(os.path.join(args.data_dir, "goal2id_new.txt"))
+    # args.topicDic = topicDic
+    # args.goalDic = goalDic
+    # args.topic_num = len(topicDic['int'])
+    # args.goal_num = len(goalDic['int'])
+    # args.taskDic = {'goal': goalDic, 'topic': topicDic}
+    
+    if 'skt' in args.bert_name or args.version=='ko':
         logger.info(f"Read Korea raw file")
         # args.gpt_model_name = 'skt/kogpt2-base-v2' # bert가 korea라는것 --> GPT도 korea 써야한다는것
         train_dataset_raw, train_knowledge_base = data_utils.dataset_reader_ko(args, 'train')
         test_dataset_raw, valid_knowledge_base = data_utils.dataset_reader_ko(args, 'test')
+        valid_dataset_raw = []
     else:
         logger.info("Read Eng raw file")
         train_dataset_raw, train_knowledge_base, train_knowledge_topic = data_utils.dataset_reader(args, 'train')
@@ -155,7 +156,6 @@ def main():
         valid_dataset_raw, test_knowledge_base, _ = data_utils.dataset_reader(args, 'dev')
         valid_knowledge_base += test_knowledge_base
     
-
     logger.info("Knowledge DB 구축")
     train_knowledgeDB, all_knowledgeDB = set(), set()
     train_knowledgeDB.update(train_knowledge_base)
@@ -166,6 +166,24 @@ def main():
     train_knowledgeDB = list(train_knowledgeDB)
     all_knowledgeDB = list(all_knowledgeDB)
     
+    if os.path.exists(os.path.join(args.data_dir, "topic2id_new.txt")) and os.path.exists(os.path.join(args.data_dir, "goal2id_new.txt")):
+        topicDic = data_utils.readDic(os.path.join(args.data_dir, "topic2id_new.txt"))
+        goalDic = data_utils.readDic(os.path.join(args.data_dir, "goal2id_new.txt"))
+        # topicDic = readDic(os.path.join(args.data_dir, "topic2id.txt"))
+        # goalDic = readDic(os.path.join(args.data_dir, "goal2id.txt"))
+    else:  ## 
+        temp_all_data = train_dataset_raw + valid_dataset_raw + test_dataset_raw
+        topicDic = data_utils.makeDic(args, temp_all_data, 'topic')
+        goalDic = data_utils.makeDic(args, temp_all_data, 'goal')
+        data_utils.saveDic(args, topicDic, 'topic')  # Left Right Love Destiny 이 0번 이었던 topicDic (0815_ESPRESSO 제출기준)
+        data_utils.saveDic(args, goalDic, 'goal')
+    args.topicDic = topicDic
+    args.goalDic = goalDic
+    args.topic_num = len(topicDic['int'])
+    args.goal_num = len(goalDic['int'])
+    args.taskDic = {'goal': goalDic, 'topic': topicDic}
+
+    # logger.info("Read raw file")
     
     
     
@@ -224,8 +242,22 @@ def main():
     
     # For Kers Resp Gen task
     if args.task!='resp': return
+    if 'skt' in args.bert_name or args.version=='ko': 
+        train_dataset_aug_pred, test_dataset_aug_pred = data_utils.process_augment_sample(train_dataset_raw), data_utils.process_augment_sample(test_dataset_raw)
+        train_dataset_pred, test_dataset_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
+        # train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
+        for idx, data in enumerate(train_dataset_aug_pred):
+            data['predicted_goal'] = train_dataset_pred[idx]['predicted_goal']
+            data['predicted_topic'] = train_dataset_pred[idx]['predicted_topic']
+            data['predicted_topic_confidence'] = train_dataset_pred[idx]['predicted_topic_confidence']
 
-    train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl")
+        # test_dataset_pred_aug = [data for data in test_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
+        for idx, data in enumerate(test_dataset_aug_pred):
+            data['predicted_goal'] = test_dataset_pred[idx]['predicted_goal']
+            data['predicted_topic'] = test_dataset_pred[idx]['predicted_topic']
+            data['predicted_topic_confidence'] = test_dataset_pred[idx]['predicted_topic_confidence']
+        
+    else: train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
     model_cache_dir = os.path.join(args.home, 'model_cache', args.bart_name)
     if args.version == '2':
         from models.kers import kers_decoder

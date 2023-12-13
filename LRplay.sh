@@ -2,7 +2,12 @@
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
 
-python kers_main.py --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Retrieve_1e-5"  --lr=1e-5 --gpu=1
+# python kers_main.py --task=resp --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Ret1_1e-5" --kers_candidate_knowledge_num=1 --lr=1e-5 --gpu=1 --bert_name='skt/kobert-base-v1' --kers_batch_size=8
+# python kers_main.py --task=resp --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Ret3_1e-5" --kers_candidate_knowledge_num=3 --lr=1e-5 --gpu=1 --bert_name='skt/kobert-base-v1' --kers_batch_size=8
+# python kers_main.py --task=resp --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Ret5_1e-5" --kers_candidate_knowledge_num=5 --lr=1e-5 --gpu=1 --bert_name='skt/kobert-base-v1' --kers_batch_size=8
+python kers_main.py --task=resp --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Ret5_3e-4" --kers_candidate_knowledge_num=5 --lr=3e-4 --gpu=2 --bert_name='skt/kobert-base-v1' --kers_batch_size=8
+python kers_main.py --task=resp --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Ret5_1e-4" --kers_candidate_knowledge_num=5 --lr=1e-4 --gpu=2 --bert_name='skt/kobert-base-v1' --kers_batch_size=8
+python kers_main.py --task=resp --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Ret5_1e-6" --kers_candidate_knowledge_num=5 --lr=1e-6 --gpu=2 --bert_name='skt/kobert-base-v1' --kers_batch_size=8
 
 
 
