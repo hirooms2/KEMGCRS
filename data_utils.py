@@ -161,7 +161,7 @@ def process_augment_all_sample(raw_data, tokenizer, knowledgeDB):
 
 
 def process_augment_sample(raw_data, tokenizer=None, knowledgeDB=None, goal_list=['Movie recommendation', 'POI recommendation', 'Music recommendation', 'Q&A', 'Food recommendation']):
-    goal_list = [goal.lower() for goal in goal_list]
+    goal_list = [goal.lower() for goal in goal_list] #if args.version=='2' else ['movie recommendation', 'qa']
     train_sample = []
     if tokenizer:
         if tokenizer.eos_token is not None:

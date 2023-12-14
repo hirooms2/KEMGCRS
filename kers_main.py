@@ -36,7 +36,7 @@ def add_kers_specific_args(parser):
     parser.add_argument("--gt_max_length", type=int, default=256, help=" Goal-Topic input max_length ")
     parser.add_argument("--gt_batch_size", type=int, default=32, help=" Method ")
 
-    parser.add_argument("--kers_batch_size", type=int, default=8, help=" KERS BATCH SIZE ")
+    parser.add_argument("--kers_batch_size", type=int, default=32, help=" KERS BATCH SIZE ")
     parser.add_argument("--kers_input_length", type=int, default=256, help=" KERS BATCH SIZE ")
     parser.add_argument("--kers_retrieve_input_length", type=int, default=768, help=" Method ")
     # parser.add_argument("--TopicTask_Train_Prompt_usePredGoal", action='store_true', help="Topic prediction시 Predicted goal 사용여부 (Train)")
@@ -243,8 +243,8 @@ def main():
     # For Kers Resp Gen task
     if args.task!='resp': return
     if 'skt' in args.bert_name or args.version=='ko': 
-        train_dataset_aug_pred, test_dataset_aug_pred = data_utils.process_augment_sample(train_dataset_raw), data_utils.process_augment_sample(test_dataset_raw)
-        train_dataset_pred, test_dataset_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
+        train_dataset_aug_pred, test_dataset_aug_pred = data_utils.process_augment_sample(train_dataset_raw, goal_list = ['movie recommendation', 'qa']), data_utils.process_augment_sample(test_dataset_raw, goal_list = ['movie recommendation', 'qa'])
+        train_dataset_pred, test_dataset_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
         # train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
         for idx, data in enumerate(train_dataset_aug_pred):
             data['predicted_goal'] = train_dataset_pred[idx]['predicted_goal']
@@ -256,7 +256,8 @@ def main():
             data['predicted_goal'] = test_dataset_pred[idx]['predicted_goal']
             data['predicted_topic'] = test_dataset_pred[idx]['predicted_topic']
             data['predicted_topic_confidence'] = test_dataset_pred[idx]['predicted_topic_confidence']
-        
+        # sum([i['predicted_goal'][0]==i['goal'] for i in train_dataset_aug_pred])/len(train_dataset_aug_pred)
+        # sum([i['predicted_topic'][0]==i['topic'] for i in train_dataset_aug_pred])/len(train_dataset_aug_pred)
     else: train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
     model_cache_dir = os.path.join(args.home, 'model_cache', args.bart_name)
     if args.version == '2':
@@ -369,10 +370,11 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         contexts.extend(tokenizer.batch_decode(dialog_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
         resps.extend(tokenizer.batch_decode(response, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
         batch_types = batch['type']
-        types.extend(tokenizer.batch_decode(goal_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
+        # types.extend(tokenizer.batch_decode(goal_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
+        types.extend(batch_types)
         topics.extend(batch['topic'])
         p_topics.extend(batch['p_topic'])
-        topic_in_resps.extend(batch['topic_in_resp'])
+        topic_in_resps.extend([bool(i) for i in batch['topic_in_resp']])
         knowledges.extend(tokenizer.batch_decode(knowledge_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens))
 
         if mode == 'test':
@@ -532,7 +534,7 @@ class Kers_Resp_Dataset(Dataset):  # knowledge용 데이터셋 -- 아직 KoRec�
         # self.tokenizer.padding_side = 'right' if self.mode == 'train' else 'left'
         source_input = self.tokenizer(input_dialog, max_length=self.input_max_length, padding='max_length', truncation=True)
         target = self.tokenizer(target, max_length=self.input_max_length, padding='max_length', truncation=True)
-        knowledges = self.tokenizer(", ".join(set(candidate_knowledges[:self.args.kers_candidate_knowledge_num])), max_length=self.input_max_length, padding='max_length', truncation=True)
+        knowledges = self.tokenizer("knowledges: "+", ".join(set(candidate_knowledges[:self.args.kers_candidate_knowledge_num])), max_length=self.input_max_length, padding='max_length', truncation=True)
         # if self.args.version=='ko':  knowledges = self.tokenizer(", ".join(set(candidate_knowledges)), max_length=self.input_max_length, padding='max_length', truncation=True)
         # else: knowledges = self.tokenizer(", ".join(set(related_knowledges)), max_length=self.input_max_length, padding='max_length', truncation=True)
         goals = self.tokenizer(f"goal: {type}, last goal: {last_type} ", max_length=self.input_max_length, padding='max_length', truncation=True)
