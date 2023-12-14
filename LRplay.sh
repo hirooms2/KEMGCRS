@@ -1,5 +1,7 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
+# python kers_main.py --task=resp --version=2 --device=0 --kers_candidate_knowledge_num=3 --log_name=KERS_BASE_PsdShuffledTop3 --kers_generator=facebook/bart-base
+# python kers_main.py --task=resp --version=2 --device=1 --kers_candidate_knowledge_num=3 --log_name=KERS_LARGE_PsdShuffledTop3 --kers_generator=facebook/bart-large --kers_batch_size=8
 
 # python kers_main.py --task=resp --version='ko' --bert_name='skt/kobert-base-v1' --log_name="KERS_Ret3_1e-4" --kers_candidate_knowledge_num=3 --lr=1e-4 --gpu=1 --bert_name='skt/kobert-base-v1' --kers_batch_size=8 --kers_pretrain_epochs=0
 
