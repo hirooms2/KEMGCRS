@@ -59,7 +59,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
     train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
-    eval_pred_loads(test_dataset_pred_aug, task='know')
+    eval_pred_loads(test_dataset_pred_aug, task='label')
 
 
 
@@ -149,4 +149,6 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
             best_epoch = epoch
             eval_metric[0] = hitdic_ratio['total']['hit1']
             torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_know.pt"))  # TIME_MODELNAME 형식
-    eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
+    
+    hitdic_ratio, output_str, _, _ = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
+    return hitdic_ratio, output_str

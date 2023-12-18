@@ -40,6 +40,7 @@ def add_ours_specific_args(parser):
     parser.add_argument("--cotmae", action='store_true', help="Initialize the retriever from pretrained CoTMAE")
     parser.add_argument("--contriever", action='store_true', help="Initialize the retriever from pretrained Contriever")
 
+    parser.add_argument("--know_iter", default=1, type=int, help="Knowledge task iteration ()")
     parser.add_argument("--pseudo_labeler", default='bm25', type=str, help="Pseudo_labeler (dpr, cotmae, bm25, contriever)")
     # parser.add_argument("--goal_topic_load", default='794', type=str, help="Predicted goal_topic_saved")
 
@@ -237,7 +238,20 @@ def main(args=None):
             tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name))
             bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
         # elif args.dpr: pass
-        train_know_retrieve.train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
+        iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
+        for i in range(args.know_iter):
+            hitdic_ratio, output_str = train_know_retrieve.train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
+            iter_output.append(f"Iter {i} output")
+            iter_output.extend(output_str)
+            iter_dics.append(hitdic_ratio)
+            hit1+=iter_dics[i]['total']['hit1']
+            hit3+=iter_dics[i]['total']['hit3']
+            hit5+=iter_dics[i]['total']['hit5']
+            # iter_dics.append(hitdic_ratio)
+        for i in iter_output:
+            logger.info(f"{i}")
+        logger.info(f"Iter {args.know_iter} avg: hit1/3/5: {hit1/args.know_iter:.3f}, {hit3/args.know_iter:.3f}, {hit5/args.know_iter:.3f}")
+        
 
     if 'pred_k' in args.task:
         # Knowledge Save
