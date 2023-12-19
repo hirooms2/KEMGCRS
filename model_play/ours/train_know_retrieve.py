@@ -49,7 +49,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
 
     # train_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'train_pred_aug_dataset.pkl')) # Topic 0.793
     # test_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'test_pred_aug_dataset.pkl'))
-    
+
     # Get predicted goal, topic
     train_dataset_pred_aug = read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
@@ -123,7 +123,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
                    # g_logit = torch.sum(logit_pos[:, :idx + 1] * pseudo_confidences_mask[:, :idx + 1], dim=-1) / (torch.sum(pseudo_confidences_mask[:, :idx + 1], dim=-1) + 1e-20)
                 if args.train_ablation == 'CL':# Contrastive loss --> 이게 그냥인것
                     g_logit = logit_pos[:, idx]  # For Sampling
-                if args.train_ablation == 'RG':# GCL
+                if args.train_ablation == 'RG' or args.train_ablation == 'GL':# GCL
                     g_logit = cumsum_logit[:, idx] / (idx + 1)  # For GCL!!!!!!! (our best)
 
                 g_logit = torch.cat([g_logit.unsqueeze(1), logit_neg], dim=1)
@@ -152,6 +152,6 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
             best_epoch = epoch
             eval_metric[0] = hitdic_ratio['total']['hit1']
             torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_know.pt"))  # TIME_MODELNAME 형식
-    
+
     hitdic_ratio, output_str, _, _ = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
     return hitdic_ratio, output_str
