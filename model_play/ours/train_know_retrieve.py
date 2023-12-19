@@ -127,7 +127,10 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
                     g_logit = cumsum_logit[:, idx] / (idx + 1)  # For GCL!!!!!!! (our best)
 
                 g_logit = torch.cat([g_logit.unsqueeze(1), logit_neg], dim=1)
-                loss += (-torch.log_softmax(g_logit, dim=1).select(dim=1, index=0)).mean()
+                g_loss = (-torch.log_softmax(g_logit, dim=1).select(dim=1, index=0)).mean()
+                loss += g_loss
+            if args.train_ablation == 'GL':
+                loss = g_loss
 
             train_epoch_loss += loss
             optimizer.zero_grad()
