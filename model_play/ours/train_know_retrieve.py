@@ -94,7 +94,8 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     # eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
     # eval_know(args, test_dataloader_write, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
 
-    eval_metric, best_output, best_epoch = [-1], None, 0
+    # eval_metric, best_output, best_epoch = [-1], None, 0
+    eval_metric, best_output, best_epoch, best_hitdic = [-1], None, 0, None
     result_path = f"{args.time}_{args.model_name}_result"
 
     for epoch in range(args.num_epochs):
@@ -150,8 +151,9 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
         if hitdic_ratio['total']['hit1'] >= eval_metric[0]:
             best_output = output_str
             best_epoch = epoch
+            best_hitdic = hitdic_ratio
             eval_metric[0] = hitdic_ratio['total']['hit1']
             torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_know.pt"))  # TIME_MODELNAME 형식
 
     hitdic_ratio, output_str, _, _ = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
-    return hitdic_ratio, output_str
+    return best_hitdic, best_output
