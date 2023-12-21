@@ -102,7 +102,7 @@ def default_parser(parser):
     parser.add_argument('--gpt_name', default='gpt2', type=str, help="BERT Model Name")
 
     parser.add_argument('--model_name', default='ours', type=str, help="Knowledge Model Name")
-    
+
     parser.add_argument('--max_prefix_length', default=30, type=int, help="dataset name")
     parser.add_argument('--max_gen_length', default=30, type=int, help="dataset name")
 
@@ -139,6 +139,7 @@ def default_parser(parser):
     parser.add_argument('--max_length', default=128, type=int, help="dataset name")  # max_length_know 로 변경 예정
     parser.add_argument("--know_ablation", default='pseudo', type=str, help="know_ablation", choices=['target', 'pseudo'])
     parser.add_argument("--train_ablation", default='RG', type=str, help="train ablation", choices=['CL', 'RG', 'GL'])
+    parser.add_argument("--train_ablation_reverse", action='store_true', help="train ablation_reverse index")
     parser.add_argument('--topk_topic', default=2, type=int, help="num of topics for input prompt")
     parser.add_argument('--topic_conf', type=float, default=0.7, help='Minimum threshold for topic confidence')
     parser.add_argument('--know_conf', type=float, default=0.2, help='Minimum threshold for topic confidence')
@@ -146,7 +147,7 @@ def default_parser(parser):
 
     parser.add_argument("--siamese", action='store_true', help="Whether to Fine-tune on type.")
     parser.add_argument("--pseudo", action='store_true', help="Whether to Fine-tune on type.")
-    parser.add_argument('--pseudo_pos_num', default=2, type=int, help="pseudo_pos_num") # pseudo label로 Top-k개를 사용 --> sample이 두배가 되는것
+    parser.add_argument('--pseudo_pos_num', default=2, type=int, help="pseudo_pos_num")  # pseudo label로 Top-k개를 사용 --> sample이 두배가 되는것
     # parser.add_argument('--pseudo_pos_rank', default=2, type=int, help="pseudo_pos_rank")
     parser.add_argument("--pseudo_confidence", action='store_true', help="Whether to Fine-tune on type.")
     parser.add_argument('--tau', type=float, default=1.0, help='Learning rate')
@@ -155,9 +156,9 @@ def default_parser(parser):
     parser.add_argument('--stage', default='rerank', type=str, choices=['retrieve', 'rerank'])
     parser.add_argument("--stage2_test", action='store_true', help="Whether to Fine-tune on type.")
     parser.add_argument('--update_freq', default=-1, type=int, help="update_freq")
-    
+
     parser.add_argument("--fast", action='store_true', help="Other models input fast (read pkl with confidence of ours)")
-    
+
     return parser
 
 
@@ -188,7 +189,7 @@ def dir_init(default_args, with_check=True):
     # args.saved_model_dir = os.path.join(args.home, 'model_save', args.version, args.method)
     args.model_dir = os.path.join(args.home, 'model_save', args.version, args.method)
     # args.rag_our_model = args.rag_our_model.upper()
-    
+
     checkPath(args.data_dir, args.saved_model_path, args.log_dir)
     checkPath(os.path.join(args.data_dir, 'pred_aug'))
     if with_check:
