@@ -122,7 +122,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
             for idx in range(args.pseudo_pos_num):
                 # confidence = torch.softmax(pseudo_confidences[:, :idx + 1], dim=-1)
                    # g_logit = torch.sum(logit_pos[:, :idx + 1] * pseudo_confidences_mask[:, :idx + 1], dim=-1) / (torch.sum(pseudo_confidences_mask[:, :idx + 1], dim=-1) + 1e-20)
-                if args.train_ablation_reverse:
+                if args.train_ablation_reverse: # Relevance-degree 에 기반한 RGL의 효과 검증을 위해, relevance-degree의 역순으로 subgroup 을 만들었을 때와 비교
                     idx = args.pseudo_pos_num - 1 - idx
 
                 if args.train_ablation == 'CL':# Contrastive loss --> 이게 그냥인것
