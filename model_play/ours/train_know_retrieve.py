@@ -115,6 +115,9 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
             target_knowledge_idx = batch['target_knowledge']  # [B,5,256]
 
             logit_pos, logit_neg = retriever.knowledge_retrieve(dialog_token, dialog_mask, candidate_indice, candidate_knowledge_token, candidate_knowledge_mask)  # [B, 2]
+            if args.train_ablation_reverse: # Relevance-degree 에 기반한 RGL의 효과 검증을 위해, relevance-degree의 역순으로 subgroup 을 만들었을 때와 비교
+                logit_pos = torch.flip(logit_pos, dims=(1,))
+
             cumsum_logit = torch.cumsum(logit_pos, dim=1)  # [B, K]  # Grouping
 
             loss = 0
@@ -122,8 +125,6 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
             for idx in range(args.pseudo_pos_num):
                 # confidence = torch.softmax(pseudo_confidences[:, :idx + 1], dim=-1)
                    # g_logit = torch.sum(logit_pos[:, :idx + 1] * pseudo_confidences_mask[:, :idx + 1], dim=-1) / (torch.sum(pseudo_confidences_mask[:, :idx + 1], dim=-1) + 1e-20)
-                if args.train_ablation_reverse: # Relevance-degree 에 기반한 RGL의 효과 검증을 위해, relevance-degree의 역순으로 subgroup 을 만들었을 때와 비교
-                    idx = args.pseudo_pos_num - 1 - idx
 
                 if args.train_ablation == 'CL':# Contrastive loss --> 이게 그냥인것
                     g_logit = logit_pos[:, idx]  # For Sampling
