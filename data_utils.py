@@ -8,6 +8,7 @@ from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 import numpy as np
 from loguru import logger
+import numpy as np
 
 try:
     from nltk.corpus import stopwords
@@ -197,11 +198,11 @@ def process_augment_sample(raw_data, tokenizer=None, knowledgeDB=None, goal_list
     return train_sample
 
 def save_pred_json_lines(dataset, data_path, keys=[]):
-    with open(data_path, 'a', encoding='utf8') as fw:
+    with open(data_path, 'w', encoding='utf-8') as fw:
             for dialog in dataset:
                 cands={}
                 for key in keys:
-                    cands[key] = dialog[key]
+                    cands[key] = [float(i) for i in dialog[key]] if isinstance(dialog[key][0], np.float32) else dialog[key]
                 fw.write(json.dumps(cands) + "\n")
 
 def read_pred_json_lines(dataset, data_path):

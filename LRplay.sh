@@ -1,5 +1,9 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_T2Conf70_PsdBM25 --model_name=794_RG2_T2Conf70_PsdBM25 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
+#  --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1
+
 
 python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_Rev_T3Conf70_PsdBM25 --model_name=794_RG2_Rev_T3Conf70_PsdBM25 --topk_topic=3 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --know_iter=3 --train_ablation_reverse
 python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG3_Rev_T3Conf70_PsdBM25 --model_name=794_RG3_Rev_T3Conf70_PsdBM25 --topk_topic=3 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=3  --device=1 --pseudo_labeler=bm25  --know_iter=3 --train_ablation_reverse

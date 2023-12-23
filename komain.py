@@ -34,8 +34,14 @@ def add_ours_specific_args(parser):
     parser.add_argument("--alltype", "--allType", action='store_true', help="AllType Check 여부, AllType아닐시 knowledge용으로 3711세팅들어감")
 
     ## For know
+    parser.add_argument("--know_item_select", default='conf', type=str, help="item selector use conf or topk", choices=['conf', 'top'])
+    parser.add_argument("--idea", type=str, default='1_2', help="Our Idea 적용 여부 (1: item selector, 2: groupwise loss)")
     parser.add_argument("--cotmae", action='store_true', help="Initialize the retriever from pretrained CoTMAE")
+    parser.add_argument("--contriever", action='store_true', help="Initialize the retriever from pretrained Contriever")
 
+    parser.add_argument("--knowledge_method", type=str, default="dpr", help = 'knowledge method: [dpr, contriever, cotmae]')
+    parser.add_argument("--pseudo_labeler", default='bm25', type=str, help="Pseudo_labeler (dpr, cotmae, bm25, contriever)")
+    parser.add_argument("--know_iter", default=1, type=int, help="Knowledge task iteration ()")
     ## For resp
     # parser.add_argument("--rag_retrieve_input_length", type=int, default=768, help=" Method ")
     # parser.add_argument("--rag_scratch", action='store_false', help="우리의 retriever모델을 쓸지 말지")  # --rag_scratch하면 scratch모델 사용하게됨
@@ -226,15 +232,37 @@ def main(args=None):
         logger.info("Finish Data Augment with Goal-Topic_pred_conf")
         pass
 
-    if "cotmae" in args.task:
-        make_cotmae_input(args.output_dir, train_dataset_raw)
+    # if "cotmae" in args.task:
+    #     make_cotmae_input(args.output_dir, train_dataset_raw)
 
-    if "dsi" in args.task:
-        make_dsi_input(args, args.output_dir, train_dataset_raw, input_setting='dialog', knowledgeDB=all_knowledgeDB, mode='train')
-        make_dsi_input(args, args.output_dir, test_dataset_raw, input_setting='dialog', knowledgeDB=all_knowledgeDB, mode='test')
+    # if "dsi" in args.task:
+    #     make_dsi_input(args, args.output_dir, train_dataset_raw, input_setting='dialog', knowledgeDB=all_knowledgeDB, mode='train')
+    #     make_dsi_input(args, args.output_dir, test_dataset_raw, input_setting='dialog', knowledgeDB=all_knowledgeDB, mode='test')
 
     if 'know' in args.task:
-        train_know_retrieve.train_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
+        if 'contriever' in args.knowledge_method: # knowledge_method
+            from models.contriever.contriever import Contriever
+            logger.info(f"Load Contriever {args.knowledge_method}")
+            args.contriever = args.knowledge_method #'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
+            # args.contriever = "facebook/mcontriever" #, "facebook/mcontriever-msmarco"
+            bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
+            tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
+        # os.path.join(args.data_dir, 'pred_aug', f'gt_train_pred_aug_dataset.pkl') os.path.join(args.data_dir, 'pred_aug', f'gt_test_pred_aug_dataset.pkl')
+        # train_know_retrieve.train_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
+        
+        iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
+        for i in range(args.know_iter):
+            hitdic_ratio, output_str = train_know_retrieve.train_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
+            iter_output.append(f"Iter {i} output")
+            iter_output.extend(output_str)
+            iter_dics.append(hitdic_ratio)
+            hit1+=iter_dics[i]['total']['hit1']
+            hit3+=iter_dics[i]['total']['hit3']
+            hit5+=iter_dics[i]['total']['hit5']
+            # iter_dics.append(hitdic_ratio)
+        for i in iter_output:
+            logger.info(f"{i}")
+        logger.info(f"Iter {args.know_iter} avg: hit1/3/5: {hit1/args.know_iter:.3f}, {hit3/args.know_iter:.3f}, {hit5/args.know_iter:.3f}")
         # train_know_retrieve.train_know(args, train_dataloader, valid_dataloader, retriever, train_knowledge_data, train_knowledgeDB, all_knowledge_data, all_knowledgeDB, tokenizer)
         # eval_know_retrieve.eval_know(args, test_dataloader, retriever, all_knowledge_data, all_knowledgeDB, tokenizer, write=False)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
 

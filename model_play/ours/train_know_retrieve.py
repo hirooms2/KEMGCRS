@@ -6,7 +6,7 @@ from torch import optim
 from transformers import AutoConfig, AutoTokenizer, AutoModel
 
 from data_model_know import KnowledgeDataset, DialogDataset
-from data_utils import process_augment_sample, read_pred_json_lines,eval_pred_loads
+from data_utils import process_augment_sample, read_pred_json_lines,eval_pred_loads, save_pred_json_lines
 from model_play.ours.eval_know_retrieve import knowledge_reindexing, eval_know  #### Check
 # from models.ours.cotmae import BertForCotMAE
 from utils import *
@@ -41,15 +41,20 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     goal_list = [goal.lower() for goal in goal_list]
     # if 'Chat' in args.goal_list:  goal_list.append('Chat about stars')
     logger.info(f" Goal List in Knowledge Task : {args.goal_list}")
-
-    # train_dataset_raw, valid_dataset_raw = split_validation(train_dataset_raw, args.train_ratio)
+    # if args.version =='ko':
+    #     train_dataset_pkl = read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl")
+    #     test_dataset_pkl = read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
+    #     eval_pred_loads(test_dataset_pred_aug, task='topic')
+    #     eval_pred_loads(test_dataset_pred_aug, task='label')
+    # else: 
+        # train_dataset_raw, valid_dataset_raw = split_validation(train_dataset_raw, args.train_ratio)
     train_dataset = process_augment_sample(train_dataset_raw, tokenizer, train_knowledgeDB, goal_list=goal_list)
-    valid_dataset = process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB, goal_list=goal_list)
+    if valid_dataset_raw: valid_dataset = process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB, goal_list=goal_list)
     test_dataset = process_augment_sample(test_dataset_raw, tokenizer, all_knowledgeDB, goal_list=goal_list)  # gold-topic
 
-    # train_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'train_pred_aug_dataset.pkl')) # Topic 0.793
-    # test_dataset_pred_aug = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'test_pred_aug_dataset.pkl'))
-
+    # train_dataset_pkl = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'train_pred_aug_dataset.pkl')) # Topic 0.793
+    # test_dataset_pkl = read_pkl(os.path.join(args.data_dir, 'pred_aug', 'pkl_794', f'test_pred_aug_dataset.pkl'))
+    # save_pred_json_lines(train_dataset_pred_aug , os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt') , ['predicted_goal', 'predicted_goal_confidence', 'predicted_topic','predicted_topic_confidence']) # list(filter(lambda x: len(x['candidate_knowledges'])>0 and x['goal'] in ['Movie Recommendation','QA'], test_dataset_pkl))
     # Get predicted goal, topic
     train_dataset_pred_aug = read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
