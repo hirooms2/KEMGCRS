@@ -707,7 +707,7 @@ class Rag_context_Dataset(Dataset):
             context_batch['context_knowledges'] = []
             for top_doc, top_conf in zip(top5_knows[:self.n_doc], top5_confs[:self.n_doc]):
                 
-                if self.args.rag_context_input_only_dialog_doc : know_topic_token = self.tokenizer.generator(f"Related knowledge: {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
+                if self.args.rag_context_input_only_dialog_doc : know_topic_token = self.tokenizer.generator(f"{top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
                 else : know_topic_token = self.tokenizer.generator(f"goal: {predicted_goal} | topic: {predicted_topic} | {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
 
                 dialog_token = self.tokenizer.generator(dialog).input_ids
