@@ -248,7 +248,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     for epoch in range(args.rag_epochs):
         logger.info(f"RAG_LR: {args.rag_lr}")
         rag_model.train()
-        if args.rag_onlyDecoderTune or (args.rag_our_model or args.rag_our_model):
+        if args.rag_onlyDecoderTune or args.rag_our_model:
             logger.info(f"\n\n*****RAG_Only_Decoder Tune!***** rag_lr: {args.rag_lr}");
             logger.info(f"*****RAG_Only_Decoder Tune!***** rag_lr: {args.rag_lr}\n\n")
             rag_model.eval()
@@ -263,7 +263,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
         if epoch == 0: rag_model_weight_logging(args, rag_model, epoch, 'before_train', faiss_dataset)
 
         if not args.debug:  # DEBUG일땐 TRAIN 무시하자 (230911)
-            if args.rag_our_model or args.rag_our_model:
+            if args.rag_our_model:
                 hitDic, hitdic_ratio, output_str = epoch_play_by_context_input_ids(args, rag_tokenizer, rag_model, train_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='train')
             else:
                 hitDic, hitdic_ratio, output_str = epoch_play(args, rag_tokenizer, rag_model, train_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='train')

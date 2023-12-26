@@ -262,10 +262,21 @@ def main(args=None):
     
     if 'resp' in args.task:
         from model_play.ours import train_our_rag_retrieve_gen
-        # iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
-        # for i in range(args.task_iter):
-        best_bleu_dic, output_str = train_our_rag_retrieve_gen.train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
-        # best_bleu_dic['bleu@2']
+        iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
+        for i in range(args.task_iter):
+            best_bleu_dic, output_str = train_our_rag_retrieve_gen.train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+            iter_dics.append(best_bleu_dic)
+            iter_output.append(output_str)
+        
+        temp_dic=defaultdict(float)
+        for k in iter_dics[0]:
+            temp_dic[k] += sum([i[k] for i in iter_dics])
+        avg_dic={i:round(v/len(iter_dics),4) for i,v in temp_dic.items()}
+        logger.info(f"{args.task_iter} iteration END")
+        logger.info(f"Average {args.task_iter} iteration:  {avg_dic['bleu@1']:.3f},  {avg_dic['bleu@2']:.3f},  {avg_dic['bleu@3']:.3f},  {avg_dic['bleu@4']:.3f},  {avg_dic['dist@1']:.3f},  {avg_dic['dist@2']:.3f},  {avg_dic['dist@3']:.3f},  {avg_dic['dist@4']:.3f}")
+        for iterout in iter_output:
+            for lineee in iterout:
+                logger.info(lineee)
     logger.info("THE END")
     return
 
