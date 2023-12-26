@@ -1,16 +1,46 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
-python kers_main.py --version='2' --num_epochs=10 --device=0 --inputWithKnowledge --gtpred --log_name="KnowTask_DPredGoal_PseudoKnowTrain" --usePseudoTrain
-python kers_main.py --version='2' --num_epochs=10 --device=1 --inputWithKnowledge --inputWithTopic --gtpred --log_name="KnowTask_DPredGoalTopic_PseudoKnowTrain" --usePseudoTrain
-
-python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_T2Conf70_PsdBM25 --model_name=794_RG2_T2Conf70_PsdBM25 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
-python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
-#  --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1
 
 
-python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_Rev_T3Conf70_PsdBM25 --model_name=794_RG2_Rev_T3Conf70_PsdBM25 --topk_topic=3 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --know_iter=3 --train_ablation_reverse
-python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG3_Rev_T3Conf70_PsdBM25 --model_name=794_RG3_Rev_T3Conf70_PsdBM25 --topk_topic=3 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=3  --device=1 --pseudo_labeler=bm25  --know_iter=3 --train_ablation_reverse
+
+# python main.py --gpu=0 --task=resp --log_name=RAG_NoIdea_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+# python main.py --gpu=0 --task=resp --log_name=RAG_NoIdea_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+# python main.py --gpu=0 --task=resp --log_name=RAG_NoIdea_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+
+# python main.py --gpu=1 --task=resp --log_name=RAG_NoIdea_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+# python main.py --gpu=1 --task=resp --log_name=RAG_NoIdea_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+# python main.py --gpu=1 --task=resp --log_name=RAG_NoIdea_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+
+# python main.py --gpu=2 --task=resp --log_name=RAG_NoIdea_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+# python main.py --gpu=2 --task=resp --log_name=RAG_NoIdea_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+# python main.py --gpu=2 --task=resp --log_name=RAG_NoIdea_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
+
+# python main.py --gpu=3 --task=resp --log_name=RAG_OUR_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+# python main.py --gpu=3 --task=resp --log_name=RAG_OUR_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+# python main.py --gpu=3 --task=resp --log_name=RAG_OUR_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+
+# python main.py --gpu=0 --task=resp --log_name=RAG_OUR_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+# python main.py --gpu=0 --task=resp --log_name=RAG_OUR_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+# python main.py --gpu=0 --task=resp --log_name=RAG_OUR_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+
+python main.py --gpu=1 --task=resp --log_name=RAG_OUR_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+python main.py --gpu=1 --task=resp --log_name=RAG_OUR_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+python main.py --gpu=1 --task=resp --log_name=RAG_OUR_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+
+
+
+
+# python kers_main.py --version='2' --num_epochs=10 --device=0 --inputWithKnowledge --gtpred --log_name="KnowTask_DPredGoal_PseudoKnowTrain" --usePseudoTrain
+# python kers_main.py --version='2' --num_epochs=10 --device=1 --inputWithKnowledge --inputWithTopic --gtpred --log_name="KnowTask_DPredGoalTopic_PseudoKnowTrain" --usePseudoTrain
+
+# python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_T2Conf70_PsdBM25 --model_name=794_RG2_T2Conf70_PsdBM25 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
+# python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
+# #  --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1
+
+
+# python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_Rev_T3Conf70_PsdBM25 --model_name=794_RG2_Rev_T3Conf70_PsdBM25 --topk_topic=3 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --know_iter=3 --train_ablation_reverse
+# python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG3_Rev_T3Conf70_PsdBM25 --model_name=794_RG3_Rev_T3Conf70_PsdBM25 --topk_topic=3 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=3  --device=1 --pseudo_labeler=bm25  --know_iter=3 --train_ablation_reverse
 ####################
 # GL, RG, CL 에서 pseudo num 1, 2, 3 에 대한 실험
 # python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG1_T3Conf70_PsdBM25 --model_name=794_RG1_T3Conf70_PsdBM25 --topk_topic=3 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=1  --device=0 --pseudo_labeler=bm25  --know_iter=3
@@ -107,9 +137,9 @@ python main.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_ep
 
 # python llama_main_finetune.py --log_name=Llama7b_chat --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf
 
-# python main.py --gpu=0 --task=resp --log_name=DPROUR_RAG_OnlyDoc_Dialog --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
-# python main.py --gpu=0 --task=resp --log_name=CotMAE_RAG_OnlyDoc_Dialog --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
-# python main.py --gpu=0 --task=resp --log_name=Contriever_RAG_OnlyDoc_Dialog --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token
+# python main.py --gpu=0 --task=resp --log_name=DPROUR_RAG_OnlyDoc_Dialog --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0_1
+# python main.py --gpu=0 --task=resp --log_name=CotMAE_RAG_OnlyDoc_Dialog --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0_1
+# python main.py --gpu=0 --task=resp --log_name=Contriever_RAG_OnlyDoc_Dialog --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0_1
 
 # python main.py --gpu=0 --task=resp --rag_lr=1e-5 --rag_epochs=13 --rag_onlyDecoderTune --log_name=DPROUR_RAG_OnlyDocDialog_Top1 --knowledge_method=dpr --rag_our_model=dpr --rag_model=token --idea=top1
 

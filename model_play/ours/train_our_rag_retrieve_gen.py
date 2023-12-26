@@ -284,6 +284,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
 
     for i in best_hitdic_str:
         logger.info(f"Test_best {i}")
+    return  best_bleu_dic, best_hitdic_str
 
 
 def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch, faiss_dataset, mode='train'):
@@ -705,8 +706,10 @@ class Rag_context_Dataset(Dataset):
             context_batch['context_doc_scores'] = []
             context_batch['context_knowledges'] = []
             for top_doc, top_conf in zip(top5_knows[:self.n_doc], top5_confs[:self.n_doc]):
-                know_topic_token = self.tokenizer.generator(f"goal: {predicted_goal} | topic: {predicted_topic} | {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
-                # know_topic_token = self.tokenizer.generator(f"Related knowledge: {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
+                
+                if self.args.rag_context_input_only_dialog_doc : know_topic_token = self.tokenizer.generator(f"Related knowledge: {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
+                else : know_topic_token = self.tokenizer.generator(f"goal: {predicted_goal} | topic: {predicted_topic} | {top_doc} |", max_length=self.input_max_length // 2, truncation=True).input_ids
+
                 dialog_token = self.tokenizer.generator(dialog).input_ids
                 ctx_input_token1 = know_topic_token + dialog_token[-(self.input_max_length - len(know_topic_token)):]
                 ctx_input_token = ctx_input_token1 + [gen_pad_id] * (self.input_max_length - len(ctx_input_token1))

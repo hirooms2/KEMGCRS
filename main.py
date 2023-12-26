@@ -40,7 +40,7 @@ def add_ours_specific_args(parser):
     parser.add_argument("--cotmae", action='store_true', help="Initialize the retriever from pretrained CoTMAE")
     parser.add_argument("--contriever", action='store_true', help="Initialize the retriever from pretrained Contriever")
 
-    parser.add_argument("--know_iter", default=1, type=int, help="Knowledge task iteration ()")
+    parser.add_argument("--task_iter", default=1, type=int, help="Knowledge or Generation task iteration ()")
     parser.add_argument("--pseudo_labeler", default='bm25', type=str, help="Pseudo_labeler (dpr, cotmae, bm25, contriever)")
     # parser.add_argument("--goal_topic_load", default='794', type=str, help="Predicted goal_topic_saved")
 
@@ -61,6 +61,7 @@ def add_ours_specific_args(parser):
     parser.add_argument("--rag_model", default='token', type=str, help="rag_our_version_bert", choices=['sequence','token'])
     parser.add_argument("--rag_our_model", default='', type=str, help="rag_our_version_bert", choices=['', 'DPR', 'C2DPR', 'dpr', 'c2dpr', 'contriever', 'cotmae'])
 
+    parser.add_argument("--rag_context_input_only_dialog_doc", action='store_true', help=" Context input에 enhanced dialog 쓸지 말지 여부 (default: Dialog) ")
     parser.add_argument("--rag_context_input_length", type=int, default=256, help=" Method ")
     parser.add_argument("--rag_n_docs", type=int, default=5, help=" RAG context_ids 로 gen할 때 사용할 passage 개수 ")
     parser.add_argument("--rag_model_name", type=str, default='token', help="Rag - sequence or token")
@@ -240,7 +241,7 @@ def main(args=None):
             bert_model = AutoModel.from_pretrained(model_name, cache_dir=os.path.join(args.home, "model_cache", model_name)).to(args.device)
         # elif args.dpr: pass
         iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
-        for i in range(args.know_iter):
+        for i in range(args.task_iter):
             hitdic_ratio, output_str = train_know_retrieve.train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
             iter_output.append(f"Iter {i} output")
             iter_output.extend(output_str)
@@ -251,7 +252,7 @@ def main(args=None):
             # iter_dics.append(hitdic_ratio)
         for i in iter_output:
             logger.info(f"{i}")
-        logger.info(f"Iter {args.know_iter} avg: hit1/3/5: {hit1/args.know_iter:.3f}, {hit3/args.know_iter:.3f}, {hit5/args.know_iter:.3f}")
+        logger.info(f"Iter {args.task_iter} avg: hit1/3/5: {hit1/args.task_iter:.3f}, {hit3/args.task_iter:.3f}, {hit5/args.task_iter:.3f}")
         
 
     if 'pred_k' in args.task:
@@ -261,9 +262,10 @@ def main(args=None):
     
     if 'resp' in args.task:
         from model_play.ours import train_our_rag_retrieve_gen
-        
-        train_our_rag_retrieve_gen.train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
-
+        # iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
+        # for i in range(args.task_iter):
+        best_bleu_dic, output_str = train_our_rag_retrieve_gen.train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+        # best_bleu_dic['bleu@2']
     logger.info("THE END")
     return
 
