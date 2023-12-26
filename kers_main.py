@@ -42,8 +42,8 @@ def add_kers_specific_args(parser):
     # parser.add_argument("--TopicTask_Train_Prompt_usePredGoal", action='store_true', help="Topic prediction시 Predicted goal 사용여부 (Train)")
     # parser.add_argument("--TopicTask_Test_Prompt_usePredGoal", action='store_true', help="Topic prediction시 Predicted goal 사용여부 (Test)")
     parser.add_argument("--gtpred", action='store_true', help="Goal-Topic prediction 해서 label로 추가 할지 여부")
-    # parser.add_argument("--usePseudoTrain", action='store_true', help="Knowledge Pseudo label을 label로 사용할지 여부 (Train)")
-    # parser.add_argument("--usePseudoTest", action='store_true', help="Knowledge Pseudo label을 label로 사용할지 여부 (Test)")
+    parser.add_argument("--usePseudoTrain", action='store_true', help="Knowledge Pseudo label을 label로 사용할지 여부 (Train)")
+    parser.add_argument("--usePseudoTest", action='store_true', help="Knowledge Pseudo label을 label로 사용할지 여부 (Test)")
     
     parser.add_argument("--kers_pretrain_epochs", type=int, default=0, help="Pre_train 몇 epoch 할지") ## Kers 가 워낙 못해서 그냥 해줘야할듯
     parser.add_argument("--originBart", action='store_true', help="KERSBART를할지, BART를 쓸지 (resp)") ## Kers 가 워낙 못해서 그냥 해줘야할듯
@@ -193,20 +193,28 @@ def main():
     if args.task=='know' :
         logger.info("Pred-Aug dataset 구축")
         args.rag_train_alltype, args.rag_test_alltype = False, False # args.gpt_train_alltype, args.gpt_test_alltype
-        train_dataset_aug_pred, test_dataset_aug_pred = make_aug_gt_pred(args, deepcopy(bert_model), tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+        # train_dataset_aug_pred, test_dataset_aug_pred = make_aug_gt_pred(args, deepcopy(bert_model), tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+        if args.version=='2':
+            train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") 
+        else:
+            Exception("Ko PklFile Needed")
         logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
         logger.info(f"!!Dataset created!!\n")
+
+        if args.debug:
+            logger.info(f"Length of Dataset Train: {len(train_dataset_aug_pred)} -> 30, Test: {len(test_dataset_aug_pred)} -> 30 " )
+            train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:30], test_dataset_aug_pred[:30]
         
-        model = 'facebook/bart-base' if args.version == '2' else 'fnlp/bart-base-chinese'
+        model_name = 'facebook/bart-base' if args.version == '2' else 'fnlp/bart-base-chinese'
         
         args.num_beams = 5
         args.inputWithKnowledge = True
         # args.inputWithTopic=False
 
-        model_cache_dir = os.path.join(args.home, 'model_cache', model)
+        model_cache_dir = os.path.join(args.home, 'model_cache', model_name)
         if args.version == '2':
-            tokenizer = BartTokenizer.from_pretrained(model, cache_dir=model_cache_dir)
-            model = BartForConditionalGeneration.from_pretrained(model, cache_dir=model_cache_dir)
+            tokenizer = BartTokenizer.from_pretrained(model_name, cache_dir=model_cache_dir)
+            model = BartForConditionalGeneration.from_pretrained(model_name, cache_dir=model_cache_dir)
         else: # version == 'ko'
             from models.kobart import get_pytorch_kobart_model, get_kobart_tokenizer
             tokenizer = get_kobart_tokenizer(cachedir=os.path.join(args.home,'model_cache','kobart'))
@@ -258,7 +266,8 @@ def main():
             data['predicted_topic_confidence'] = test_dataset_pred[idx]['predicted_topic_confidence']
         # sum([i['predicted_goal'][0]==i['goal'] for i in train_dataset_aug_pred])/len(train_dataset_aug_pred)
         # sum([i['predicted_topic'][0]==i['topic'] for i in train_dataset_aug_pred])/len(train_dataset_aug_pred)
-    else: train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
+    else: train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") 
+    #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
     model_cache_dir = os.path.join(args.home, 'model_cache', args.bart_name)
     if args.version == '2':
         from models.kers import kers_decoder

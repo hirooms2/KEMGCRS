@@ -84,8 +84,8 @@ class DialogDataset(Dataset):
         data = self.augmented_raw_sample[idx]
         cbdicKeys = ['dialog', 'user_profile', 'response', 'goal', 'topic', 'situation', 'target_knowledge', 'candidate_knowledges', 'candidate_confidences']
         dialog, user_profile, response, goal, topic, situation, target_knowledge, candidate_knowledges, candidate_confidences = [data[i] for i in cbdicKeys]
-        try: candidate_knowledges = [self.knowledgeDB.index(passage) for passage in candidate_knowledges]
-        except: candidate_knowledges = [self.knowledgeDB.index(passage.replace('\t',' ')) for passage in candidate_knowledges]
+        if self.args.version=='2': candidate_knowledges = [self.knowledgeDB.index(passage) for passage in candidate_knowledges]
+        else: candidate_knowledges = [self.knowledgeDB.index(passage.replace('\t',' ')) for passage in candidate_knowledges]
         # candidate_confidences = min_max_norm(candidate_confidences)
         candidate_confidences = softmax(candidate_confidences)
 

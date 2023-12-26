@@ -11,6 +11,7 @@ from tqdm import tqdm
 from collections import defaultdict
 from loguru import logger
 from copy import deepcopy
+import data_utils
 
 
 def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, test_dataset_aug, train_knowledge_seq_set, test_knowledge_seq_set):
@@ -34,7 +35,8 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=5e-4, eps=5e-9)
     beam_temp = args.num_beams
     # args.num_beams = 1
-    logger.info(f"Train with Pseudo knowledge label: {args.usePseudoTrain}, Test with Pseudo knowledge label: {args.usePseudoTest}")
+    # args.usePseudoTrain, args.usePseudoTest = False, False
+    # logger.info(f"Train with Pseudo knowledge label: {args.usePseudoTrain}, Test with Pseudo knowledge label: {args.usePseudoTest}")
     # Fine-tune
     for epoch in range(args.num_epochs):
         # if epoch == args.num_epochs - 1: args.num_beams = beam_temp
@@ -51,7 +53,7 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
             ### For Pseudo Knowledge 학습 --> Target label로 Scoring
             # if args.usePseudoLabel: # Train시 Pseudo label 사용하도록 전면 수정
             # else: outputs = model(input_ids=dialog, labels = knowledge, output_hidden_states=True)
-            if args.usePseudoTrain: knowledge = torch.as_tensor(batch['knowledge_task_pseudo_label'], device=args.device)  # Pseudo label
+            # if args.usePseudoTrain: knowledge = torch.as_tensor(batch['knowledge_task_pseudo_label'], device=args.device)  # Pseudo label
             outputs = model(input_ids=dialog, labels=knowledge, output_hidden_states=True)
             loss = outputs.loss
             optimizer.zero_grad()
@@ -61,7 +63,7 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
             train_loss += loss.item()
             loss.detach()
 
-            context_word, label_word, pred_word = decode_withBeam(args, model=model, tokenizer=tokenizer, input=dialog, label=knowledge, num_beams=args.num_beams)
+            context_word, label_word, pred_word = decode_withBeam(args, model=model, tokenizer=tokenizer, input=dialog, label=knowledge, num_beams=args.num_beams, istrain=False)
             context_words.extend(context_word)
             pred_words.extend(pred_word)
             label_words.extend(label_word)
@@ -89,7 +91,7 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
                 knowledge = torch.as_tensor(batch['knowledge_task_label'], device=args.device)  ##
                 new_knows.extend([int(i) for i in batch['is_new_knowledge']])
                 ### For Pseudo Knowledge 학습 --> Target label로 Scoring
-                if args.usePseudoTest: knowledge = torch.as_tensor(batch['knowledge_task_pseudo_label'], device=args.device)
+                # if args.usePseudoTest: knowledge = torch.as_tensor(batch['knowledge_task_pseudo_label'], device=args.device)
                 # Goal label로 Test하도록 (230704 이후)
                 outputs = model(input_ids=dialog, labels=knowledge, output_hidden_states=True)
                 loss = outputs.loss
@@ -112,7 +114,8 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
         logger.info(f'Epoch_{epoch} Test loss: {test_loss}, Samples: {len(context_words)}')
         logger.info(f"Epoch_{epoch}_{args.data_mode}  Knowledge     Hit@1/Hit@3/Hit@5: {hit1}, {hit3}, {hit5} \t ")
         logger.info(f"Epoch_{epoch}_{args.data_mode}  New Knowledge Hit@1/Hit@3/Hit@5: {hit1_new}, {hit3_new}, {hit5_new} \t New Knowledge Count: {sum(new_knows)}")
-        save_preds(args, context_words, pred_words, label_words, epoch, new_knows, )
+        save_preds(args, context_words, pred_words, label_words, epoch, new_knows )
+        # data_utils.save_pred_json_lines(dataset, os.path.join(args.output_dir, f""), keys=[])
 
 
 def decode_withBeam(args, model, tokenizer, input, label, num_beams=1, istrain=True):
@@ -261,4 +264,6 @@ def save_preds(args, context, pred_words, label_words, epoch=None, new_knows=Non
             f.write(f"Pred : {pred}\n")
             f.write(f"Label: {label}\n")
             f.write(f"\n")
+    dataset = [{'predicted_know': pred_know, 'predicted_know_confidence':[1 for kk in pred_know] } for pred_know in pred_words ]
+    data_utils.save_pred_json_lines(dataset, os.path.join(args.output_dir, f"V_{args.version}_epoch{epoch}_kers_{mode}_know.txt"), keys=['predicted_know','predicted_know_confidence'])
     return
