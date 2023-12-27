@@ -34,7 +34,7 @@ def knowledge_reindexing(args, knowledge_data, retriever, stage):
     knowledge_index = torch.stack(knowledge_index, 0)
     return knowledge_index
 
-def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer):
+def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer, iter_count=0):
     from data_utils import process_augment_sample, read_pred_json_lines, eval_pred_loads, save_pred_json_lines
     from data_model_know import KnowledgeDataset, DialogDataset
     from models.ours.retriever import Retriever
@@ -94,9 +94,9 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     with torch.no_grad():
         retriever.to(args.device)
         hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
-        save_pred_know_json(os.path.join(args.output_dir, f"en_{args.model_name}_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
+        save_pred_know_json(os.path.join(args.output_dir, f"en_{args.model_name}_{iter_count}_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
         hitdic_ratio, test_output_str, test_top10_cand_knows, test_top10_cand_knows_conf = eval_know(args, test_dataloader_retrieve, retriever, all_knowledgeDB, tokenizer, data_type='test')
-        save_pred_know_json(os.path.join(args.output_dir, f"en_{args.model_name}_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
+        save_pred_know_json(os.path.join(args.output_dir, f"en_{args.model_name}_{iter_count}_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
     for i in test_output_str:
         logger.info(f"{args.model_name}: {i}")
     

@@ -41,8 +41,8 @@
 # python kers_main.py --version='2' --num_epochs=10 --device=0 --inputWithKnowledge --gtpred --log_name="KnowTask_DPredGoal_PseudoKnowTrain" --usePseudoTrain
 # python kers_main.py --version='2' --num_epochs=10 --device=1 --inputWithKnowledge --inputWithTopic --gtpred --log_name="KnowTask_DPredGoalTopic_PseudoKnowTrain" --usePseudoTrain
 
-# python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_T2Conf70_PsdBM25 --model_name=794_RG2_T2Conf70_PsdBM25 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
-# python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --know_iter=3 --knowledge_method=facebook/mcontriever
+# python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_RG2_T2Conf70_PsdBM25 --model_name=794_RG2_T2Conf70_PsdBM25 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
+# python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
 # #  --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1
 
 

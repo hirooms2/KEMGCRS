@@ -41,7 +41,7 @@ def add_ours_specific_args(parser):
 
     parser.add_argument("--knowledge_method", type=str, default="dpr", help = 'knowledge method: [dpr, contriever, cotmae]')
     parser.add_argument("--pseudo_labeler", default='bm25', type=str, help="Pseudo_labeler (dpr, cotmae, bm25, contriever)")
-    parser.add_argument("--know_iter", default=1, type=int, help="Knowledge task iteration ()")
+    parser.add_argument("--task_iter", default=1, type=int, help="Knowledge task iteration ()")
     ## For resp
     # parser.add_argument("--rag_retrieve_input_length", type=int, default=768, help=" Method ")
     # parser.add_argument("--rag_scratch", action='store_false', help="우리의 retriever모델을 쓸지 말지")  # --rag_scratch하면 scratch모델 사용하게됨
@@ -56,9 +56,10 @@ def add_ours_specific_args(parser):
     parser.add_argument("--rag_test_alltype", action='store_true', help="Input으로 넣을 때 all type할지 말지")  
     parser.add_argument("--rag_ctx_training", action='store_true', help="rag 의 ctx_encoder또한 학습시킬지 말지 (scratch에서 사용)")
     
+    parser.add_argument("--rag_context_input_only_dialog_doc", action='store_true', help=" Context input에 enhanced dialog 쓸지 말지 여부 (default: Dialog) ")
     parser.add_argument("--rag_onlyDecoderTune", action='store_true', help="rag decoder를 쓸 때, retriever부분 freeze하도록 세팅")
-    parser.add_argument("--rag_our_bert", action='store_true', help="우리의 retriever모델을 쓸지 말지")  # --rag_scratch하면 scratch모델 사용하게됨
-    parser.add_argument("--rag_our_model", default='', type=str, help="rag_our_version_bert", choices=['', 'DPR', 'C2DPR', 'dpr','c2dpr'])
+    # parser.add_argument("--rag_our_bert", action='store_true', help="우리의 retriever모델을 쓸지 말지")  # --rag_scratch하면 scratch모델 사용하게됨
+    parser.add_argument("--rag_our_model", default='', type=str, help="rag_our_version_bert")
     
     
     parser.add_argument("--rag_context_input_length", type=int, default=256, help=" Method ")
@@ -75,6 +76,7 @@ def main(args=None):
     args = parser.parse_args()
     args.version='ko'
     args.bert_name = 'skt/kobert-base-v1'
+    if args.rag_our_model: args.rag_onlyDecoderTune=True
     # # args.bert_name = 'beomi/kcbert-base' # 'beomi/kcbert-large'
     # args.gpt_name = 'skt/kogpt2-base-v2'
     # parser.add_argument('--bert_name', default='bert-base-uncased', type=str, help="BERT Model Name")
@@ -251,8 +253,9 @@ def main(args=None):
         # train_know_retrieve.train_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
         
         iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
-        for i in range(args.know_iter):
+        for i in range(args.task_iter):
             hitdic_ratio, output_str = train_know_retrieve.train_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
+            eval_know_retrieve.aug_pred_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer, i)
             iter_output.append(f"Iter {i} output")
             iter_output.extend(output_str)
             iter_dics.append(hitdic_ratio)
@@ -262,14 +265,19 @@ def main(args=None):
             # iter_dics.append(hitdic_ratio)
         for i in iter_output:
             logger.info(f"{i}")
-        logger.info(f"Iter {args.know_iter} avg: hit1/3/5: {hit1/args.know_iter:.3f}, {hit3/args.know_iter:.3f}, {hit5/args.know_iter:.3f}")
+        logger.info(f"Iter {args.task_iter} avg: hit1/3/5: {hit1/args.task_iter:.3f}, {hit3/args.task_iter:.3f}, {hit5/args.task_iter:.3f}")
         # train_know_retrieve.train_know(args, train_dataloader, valid_dataloader, retriever, train_knowledge_data, train_knowledgeDB, all_knowledge_data, all_knowledgeDB, tokenizer)
         # eval_know_retrieve.eval_know(args, test_dataloader, retriever, all_knowledge_data, all_knowledgeDB, tokenizer, write=False)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
+    
+    if 'pred_k' in args.task:
+        # Knowledge Save
+        logger.info("aug,Load")
+        eval_know_retrieve.aug_pred_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
 
     if 'resp' in args.task:
         from model_play.ours import ko_train_out_rag_gen_th ,ko_train_our_rag_gen
-        if args.hj:  ko_train_our_rag_gen.train_KO_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
-        else: ko_train_out_rag_gen_th.train_KO_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+        ko_train_our_rag_gen.train_KO_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+        # else: ko_train_out_rag_gen_th.train_KO_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
     
     logger.info("THE END")
     return
