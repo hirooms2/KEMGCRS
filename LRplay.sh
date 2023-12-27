@@ -1,15 +1,22 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+## doc 을 3, 5로 변경해봄 \\ rag_context_input에서 doc + dialog만 들어가도록 변경
+# python main.py --gpu=0 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5rag_n_docs_RAG_No_DPR --knowledge_method=dpr --rag_our_model=dpr   --rag_model=token --idea=0
+# python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5_RAG_No_CotMAE --knowledge_method=cotmae --rag_our_model=cotmae   --rag_model=token --idea=0
+# python main.py --gpu=2 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5_RAG_No_Contriever --knowledge_method=contriever --rag_our_model=contriever   --rag_model=token --idea=0
+# python main.py --gpu=3 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5_RAG_OUR_DPR --knowledge_method=dpr --rag_our_model=dpr   --rag_model=token --idea=1_2
+# python main.py --gpu=0 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5_RAG_OUR_CotMAE --knowledge_method=cotmae --rag_our_model=cotmae   --rag_model=token --idea=1_2
+# python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5_RAG_OUR_Contriever --knowledge_method=contriever --rag_our_model=contriever   --rag_model=token --idea=1_2
 
-python main.py --gpu=0 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --log_name=OnlyDOC_RAG_No_DPR --knowledge_method=dpr --rag_our_model=dpr   --rag_model=token --idea=0
-python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --log_name=OnlyDOC_RAG_No_CotMAE --knowledge_method=cotmae --rag_our_model=cotmae   --rag_model=token --idea=0
-python main.py --gpu=2 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --log_name=OnlyDOC_RAG_No_Contriever --knowledge_method=contriever --rag_our_model=contriever   --rag_model=token --idea=0
-python main.py --gpu=3 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --log_name=OnlyDOC_RAG_OUR_DPR --knowledge_method=dpr --rag_our_model=dpr   --rag_model=token --idea=1_2
-python main.py --gpu=0 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --log_name=OnlyDOC_RAG_OUR_CotMAE --knowledge_method=cotmae --rag_our_model=cotmae   --rag_model=token --idea=1_2
-python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --log_name=OnlyDOC_RAG_OUR_Contriever --knowledge_method=contriever --rag_our_model=contriever   --rag_model=token --idea=1_2
+# python main.py --gpu=0 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=3 --log_name=OnlyDOC3_RAG_No_DPR --knowledge_method=dpr --rag_our_model=dpr   --rag_model=token --idea=0
+# python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=3 --log_name=OnlyDOC3_RAG_No_CotMAE --knowledge_method=cotmae --rag_our_model=cotmae   --rag_model=token --idea=0
+# python main.py --gpu=2 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=3 --log_name=OnlyDOC3_RAG_No_Contriever --knowledge_method=contriever --rag_our_model=contriever   --rag_model=token --idea=0
+# python main.py --gpu=3 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=3 --log_name=OnlyDOC3_RAG_OUR_DPR --knowledge_method=dpr --rag_our_model=dpr   --rag_model=token --idea=1_2
+# python main.py --gpu=0 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=3 --log_name=OnlyDOC3_RAG_OUR_CotMAE --knowledge_method=cotmae --rag_our_model=cotmae   --rag_model=token --idea=1_2
+# python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=3 --log_name=OnlyDOC3_RAG_OUR_Contriever --knowledge_method=contriever --rag_our_model=contriever   --rag_model=token --idea=1_2
 
-
+####
 # python main.py --gpu=0 --task=resp --log_name=RAG_NoIdea_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
 # python main.py --gpu=0 --task=resp --log_name=RAG_NoIdea_DPR_RAG --knowledge_method=dpr --rag_our_model=dpr --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=0
 
@@ -25,8 +32,8 @@ python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog
 # python main.py --gpu=0 --task=resp --log_name=RAG_OUR_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
 # python main.py --gpu=0 --task=resp --log_name=RAG_OUR_CotMAE_RAG --knowledge_method=cotmae --rag_our_model=cotmae --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
 
-python main.py --gpu=1 --task=resp --log_name=RAG_OUR_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
-python main.py --gpu=1 --task=resp --log_name=RAG_OUR_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+# python main.py --gpu=1 --task=resp --log_name=RAG_OUR_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
+# python main.py --gpu=1 --task=resp --log_name=RAG_OUR_Contriever_RAG --knowledge_method=contriever --rag_our_model=contriever --rag_lr=1e-5 --rag_epochs=15 --rag_onlyDecoderTune --rag_model=token --idea=1_2
 
 
 
