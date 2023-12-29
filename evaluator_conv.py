@@ -5,6 +5,7 @@ from collections import defaultdict
 from transformers import AutoTokenizer
 from utils import read_pkl
 import warnings
+from tqdm import tqdm
 warnings.filterwarnings('ignore')
 class ConvEvaluator:
     def __init__(self, tokenizer, log_file_path=None):
@@ -111,7 +112,8 @@ class ConvEvaluator_ByType:
                     self.metric_byType[type][dist_k].add(token)
 
     def compute_bleu(self, preds, labels, types):
-        for pred, label, type in zip(preds, labels, types):
+        # tqdm(zip(preds, labels, types), desc="Dataset Read", bar_format='{l_bar} | {bar:23} {r_bar}')
+        for pred, label, type in tqdm(zip(preds, labels, types), desc="Compute_Bleu", bar_format='{l_bar} | {bar:23} {r_bar}'):
             pred, label = pred.split(), [label.split()]
             for k in range(4):
                 weights = [0] * 4
@@ -197,16 +199,22 @@ class ConvEvaluator_ByType:
         output_str.append(f"(pred) Topic Hit Ratio: {sum([p == g for p, g in zip(p_topics, topics)]) / len(p_topics):.3f}")
         return hitdic, hitdic_ratio, output_str
 class Args:
-    def __init__(self) -> None:
-        self.version='en'
+    def __init__(self, version) -> None:
+        self.version = version
 
-def conv_gen_eval(model_result='bartbase'):
+def conv_gen_eval(version='2', model_result='bartbase', when='231229'):
     import os
-    home, bert_name = '/home/work/CRSTEST/KEMGCRS/', 'bert-base-uncased'
+    # home, bert_name = '/home/work/CRSTEST/KEMGCRS/', 'bert-base-uncased'
+    
+    home, bert_name = os.path.dirname(os.path.realpath(__file__)) , 'bert-base-uncased'
     tokenizer = AutoTokenizer.from_pretrained(bert_name, cache_dir=os.path.join(home, "model_cache", bert_name))
     evaluator = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
+    evaluator_knowledgebleu = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
     test_dataset= read_pkl('/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl') # Data for true type, topic, knowledges
-    rep_path = os.path.join(home, 'temp_code','hitgen','model',model_result) # "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
+    knowledges3711=[i['target_knowledge'] for i in test_dataset]
+    
+    rep_path = os.path.join(home, 'temp_code', 'hitgen', version, when,model_result) # "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
+
     types, preds, labels = [], [], []
     with open(rep_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -216,16 +224,22 @@ def conv_gen_eval(model_result='bartbase'):
             labels.append(linedic['label'])
             types.append(linedic['type'])
     evaluator.after_eval_report(preds[:], labels[:], types[:])
+    evaluator_knowledgebleu.after_eval_report(preds[:], knowledges3711[:], types[:])
     report = evaluator.report()
+    report_knowledgebleu = evaluator_knowledgebleu.report()
     report_text = [f" {model_result}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
                    f"{model_result}: {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
+    report_text_knowledgebleu = [f" {model_result}_knowledge_bleu: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+                   f"{model_result}_knowledge_bleu: {report_knowledgebleu['bleu@1']:.3f},  {report_knowledgebleu['bleu@2']:.3f},  {report_knowledgebleu['bleu@3']:.3f},  {report_knowledgebleu['bleu@4']:.3f},  {report_knowledgebleu['dist@1']:.3f},  {report_knowledgebleu['dist@2']:.3f},  {report_knowledgebleu['dist@3']:.3f},  {report_knowledgebleu['dist@4']:.3f}"]
     print(report_text[0], '\n', report_text[1])
+    print(report_text_knowledgebleu[0], '\n', report_text_knowledgebleu[1])
 
     topics = [i['topic'] for i in test_dataset]
     topic_in_resps = [i['topic'].lower() in i['response'].lower() for i in test_dataset]
     p_topics = [i['predicted_topic'][0] for i in test_dataset]
     
-    hitdic, hitdic_ratio, output_str = evaluator.gen_resp_topic(Args(), real_resps=labels, types=types, topics=topics, gen_resps=preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
+    hitdic, hitdic_ratio, output_str = evaluator.gen_resp_topic(Args(version), real_resps=labels, types=types, topics=topics, gen_resps=preds, topic_in_resps=topic_in_resps, p_topics=p_topics)
+    
     for i in output_str: 
         print(i)
 
@@ -289,5 +303,6 @@ def know_hit_ratio(args, pred_pt, gold_pt, new_knows=None, types=None, typelist=
 if __name__ == '__main__':
     import json
 
-    conv_gen_eval()
+    # conv_gen_eval(version='2', model_result='bartbase', when='231229')
+    conv_gen_eval(version='2', model_result='kers_base_10', when='231229')
     pass
