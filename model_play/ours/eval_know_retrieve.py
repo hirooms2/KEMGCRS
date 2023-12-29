@@ -40,13 +40,13 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     from models.ours.retriever import Retriever
     from json import dumps
     from transformers import AutoTokenizer, AutoModel
-    args.batch_size=400
+    # args.batch_size=400
     logger.info(f"Model_Name: {args.model_name}")
     if 'contriever' in args.knowledge_method: 
     # if args.contriever or 'contriever' in args.model_name.lower():
         from models.contriever.contriever import Contriever
         # args.contriever = 'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
-        args.contriever = 'facebook/contriever-msmarco'
+        args.contriever = 'facebook/contriever-msmarco' if args.version=='2' else 'facebook/mcontriever'
         bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
         tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
     elif 'cotmae' in args.knowledge_method: 
@@ -61,9 +61,10 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
         pass
     
     # train_dataset_raw, valid_dataset_raw = split_validation(train_dataset_raw, args.train_ratio)
-    train_dataset = process_augment_sample(train_dataset_raw, tokenizer, train_knowledgeDB)
-    valid_dataset = process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB)
-    test_dataset = process_augment_sample(test_dataset_raw, tokenizer, all_knowledgeDB)  # gold-topic
+    goal_list= ['Movie recommendation', 'POI recommendation', 'Music recommendation', 'Q&A', 'Food recommendation'] if args.version=='2' else ['movie recommendation', 'qa']
+    train_dataset = process_augment_sample(train_dataset_raw, tokenizer, train_knowledgeDB, goal_list=goal_list)
+    valid_dataset = process_augment_sample(valid_dataset_raw, tokenizer, all_knowledgeDB, goal_list=goal_list)
+    test_dataset = process_augment_sample(test_dataset_raw, tokenizer, all_knowledgeDB, goal_list=goal_list)  # gold-topic
 
     # Get predicted goal, topic
     train_dataset_pred_aug = read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
@@ -82,8 +83,8 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     # valid_datamodel_know = DialogDataset(args, valid_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
     test_datamodel_know = DialogDataset(args, test_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
 
-    train_dataloader_retrieve = DataLoader(train_datamodel_know, batch_size=args.batch_size, shuffle=False)
-    test_dataloader_retrieve = DataLoader(test_datamodel_know, batch_size=args.batch_size, shuffle=False)
+    train_dataloader_retrieve = DataLoader(train_datamodel_know, batch_size=args.batch_size*10, shuffle=False)
+    test_dataloader_retrieve = DataLoader(test_datamodel_know, batch_size=args.batch_size*10, shuffle=False)
 
 
     retriever = Retriever(args, bert_model)
@@ -99,6 +100,7 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
         save_pred_know_json(os.path.join(args.output_dir, f"en_{args.model_name}_{iter_count}_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
     for i in test_output_str:
         logger.info(f"{args.model_name}: {i}")
+    torch.cuda.empty_cache()
     
 
 def save_pred_know_json(data_path, top10_cand_knows, top10_cand_knows_conf):

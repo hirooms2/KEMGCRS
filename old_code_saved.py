@@ -1,3 +1,28 @@
+import json
+import evaluator_conv
+
+def get_gen_report(path):
+    output={"gen_resp":[],"real_resp":[],'types':[]}
+    with open(path, 'r', encoding='utf-8') as f :
+        for line in f.readlines():
+           ljson=json.loads(line)
+           # ljson['pred'].startsWith("System: ")
+           output['gen_resp'].append(ljson['pred'])
+           output['real_resp'].append(ljson['label'])
+           if 'type' in ljson: output['types'].append(ljson['type'])
+    return output
+# unireport = get_gen_report('data/du2/uni_11_test_GEN_REPORT.txt')
+
+if __name__=='__main__':
+    print("Start")
+
+
+
+
+
+
+
+
 if False: ## train_our_rag_retrieve_gen 에서 쓰던 epoch_play
     def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch, faiss_dataset, mode='train'):
         from tqdm import tqdm

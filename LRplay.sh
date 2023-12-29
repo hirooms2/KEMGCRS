@@ -1,6 +1,18 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=10 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
+
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --lr=1e-5 --log_name=794_RG2_T2Conf70_PsdBM25_1e5 --model_name=794_RG2_T2Conf70_PsdBM25_1e5 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --lr=1e-5 --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea_1e5 --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea_1e5 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
+
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --lr=1e-6 --log_name=794_RG2_T2Conf70_PsdBM25_1e6 --model_name=794_RG2_T2Conf70_PsdBM25_1e6 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --lr=1e-6 --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea_1e6 --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea_1e6 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
+
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --lr=1e-4 --log_name=794_RG2_T2Conf70_PsdBM25_1e4 --model_name=794_RG2_T2Conf70_PsdBM25_1e4 --topk_topic=2 --know_item_select=conf --topic_conf=0.7 --train_ablation=RG --pseudo_pos_num=2  --device=0 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
+python komain.py --task=know_pred_k --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --lr=1e-4 --log_name=794_CL1_T2Conf70_PsdBM25_NoIdea_1e4 --model_name=794_CL1_T2Conf70_PsdBM25_NoIdea_1e4 --topk_topic=0 --train_ablation=CL --pseudo_pos_num=1  --device=1 --pseudo_labeler=bm25  --task_iter=3 --knowledge_method=facebook/mcontriever
+
+
 ## doc 을 3, 5로 변경해봄 \\ rag_context_input에서 doc + dialog만 들어가도록 변경
 # python main.py --gpu=0 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5rag_n_docs_RAG_No_DPR --knowledge_method=dpr --rag_our_model=dpr   --rag_model=token --idea=0
 # python main.py --gpu=1 --task=resp --task_iter=3 --rag_context_input_only_dialog_doc --rag_epochs=5 --rag_onlyDecoderTune --rag_lr=1e-5 --rag_n_docs=5 --log_name=OnlyDOC5_RAG_No_CotMAE --knowledge_method=cotmae --rag_our_model=cotmae   --rag_model=token --idea=0

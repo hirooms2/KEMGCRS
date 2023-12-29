@@ -15,7 +15,7 @@ from rank_bm25 import BM25Okapi
 from model_play.ours.train_bert_goal_topic import train_goal_topic_bert, pred_goal_topic_aug, eval_goal_topic_model
 from model_play.ours import train_know_retrieve, eval_know_retrieve  # , train_our_rag_retrieve_gen
 # from model_play.ours.eval_know import *
-
+from copy import deepcopy
 from loguru import logger
 import utils
 import data_utils
@@ -245,7 +245,7 @@ def main(args=None):
         if 'contriever' in args.knowledge_method: # knowledge_method
             from models.contriever.contriever import Contriever
             logger.info(f"Load Contriever {args.knowledge_method}")
-            args.contriever = args.knowledge_method #'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
+            args.contriever = "facebook/mcontriever" #'facebook/contriever'  # facebook/contriever-msmarco || facebook/mcontriever-msmarco
             # args.contriever = "facebook/mcontriever" #, "facebook/mcontriever-msmarco"
             bert_model = Contriever.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever)).to(args.device)
             tokenizer = AutoTokenizer.from_pretrained(args.contriever, cache_dir=os.path.join(args.home, "model_cache", args.contriever))
@@ -254,8 +254,8 @@ def main(args=None):
         
         iter_dics, iter_output, hit1, hit3, hit5 = [],[], 0, 0, 0
         for i in range(args.task_iter):
-            hitdic_ratio, output_str = train_know_retrieve.train_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer)
-            eval_know_retrieve.aug_pred_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer, i)
+            hitdic_ratio, output_str = train_know_retrieve.train_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, deepcopy(bert_model), tokenizer)
+            eval_know_retrieve.aug_pred_know(args, train_dataset_raw, test_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, deepcopy(bert_model), tokenizer, i)
             iter_output.append(f"Iter {i} output")
             iter_output.extend(output_str)
             iter_dics.append(hitdic_ratio)
