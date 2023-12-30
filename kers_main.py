@@ -576,7 +576,7 @@ class Kers_Resp_Dataset(Dataset):  # knowledge용 데이터셋 -- 아직 KoRec�
             input_dialog = dialog
             target = response
 
-        
+        candidate_knowledges = data['predicted_know'] # KERS 가 직접 predict한 knowledge 들어가도록
         # self.tokenizer.padding_side = 'right' if self.mode == 'train' else 'left'
         source_input = self.tokenizer(input_dialog, max_length=self.input_max_length, padding='max_length', truncation=True)
         target = self.tokenizer(target, max_length=self.input_max_length, padding='max_length', truncation=True)

@@ -113,7 +113,8 @@ class ConvEvaluator_ByType:
 
     def compute_bleu(self, preds, labels, types):
         # tqdm(zip(preds, labels, types), desc="Dataset Read", bar_format='{l_bar} | {bar:23} {r_bar}')
-        for pred, label, type in tqdm(zip(preds, labels, types), desc="Compute_Bleu", bar_format='{l_bar} | {bar:23} {r_bar}'):
+        # for pred, label, type in tqdm(zip(preds, labels, types), desc="Compute_Bleu", bar_format='{l_bar} | {bar:23} {r_bar}'):
+        for pred, label, type in zip(preds, labels, types):
             pred, label = pred.split(), [label.split()]
             for k in range(4):
                 weights = [0] * 4

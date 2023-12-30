@@ -3,8 +3,8 @@
 
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=10 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
 
-python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --inputWithKnowledge --kers_know_candidate_knowledge_num=0 --log_name="Know_NoKnowledge_resp_LARGE" --kers_generator=facebook/bart-large
-python kers_main.py --version='2' --task=resp --num_epochs=10 --device=1 --inputWithKnowledge --kers_know_candidate_knowledge_num=20 --log_name="Know_20Knowledge_resp_LARGE" --kers_generator=facebook/bart-large
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --inputWithKnowledge --kers_know_candidate_knowledge_num=0 --log_name="Resp_KnowpredFromKERS_cand20_LARGE" --kers_generator=facebook/bart-large
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=1 --inputWithKnowledge --kers_know_candidate_knowledge_num=20 --log_name="Resp_KnowpredFromKERS_candNo_LARGE" --kers_generator=facebook/bart-large
 
 # python kers_main.py --version='2' --task=know_resp --num_epochs=10 --device=0 --inputWithKnowledge --kers_know_candidate_knowledge_num=0 --log_name="Know_NoKnowledge_resp_LARGE" --kers_generator=facebook/bart-large
 # python kers_main.py --version='2' --task=know_resp --num_epochs=10 --device=1 --inputWithKnowledge --kers_know_candidate_knowledge_num=20 --log_name="Know_20Knowledge_resp_LARGE" --kers_generator=facebook/bart-large
