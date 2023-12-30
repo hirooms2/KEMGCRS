@@ -52,7 +52,9 @@ def add_kers_specific_args(parser):
     parser.add_argument("--inputWithTopic", action='store_true', help="Input에 Topic도 넣어줄지 여부")
     parser.add_argument("--kers_generator", type=str, default="facebook/bart-base", help=" Method ")
     # parser.add_argument("--kers_retrieve_saved_num", type=int, default=7, help=" Method ")
-    parser.add_argument("--kers_candidate_knowledge_num", type=int, default=20, help="Cand know를 몇개 쓸지 여부 ")
+    
+    parser.add_argument("--kers_know_candidate_knowledge_num", type=int, default=20, help="Know task에서 Cand know를 몇개 쓸지 여부 ")
+    parser.add_argument("--kers_resp_candidate_knowledge_num", type=int, default=5, help="Resp task에서 Cand know를 몇개 쓸지 여부 ")
     parser.add_argument("--kers_candidate_knowledge_shuffle", type=str, default="TRUE", help="Cand know를 shuffle할지 말지 여부 ")
     return parser
 
@@ -190,7 +192,8 @@ def main():
     
     
     # -- For Knowledge Retrieve Task --#
-    if args.task=='know' :
+    best_hit1, best_epoch = 0,0
+    if 'know' in args.task :
         logger.info("Pred-Aug dataset 구축")
         args.rag_train_alltype, args.rag_test_alltype = False, False # args.gpt_train_alltype, args.gpt_test_alltype
         # train_dataset_aug_pred, test_dataset_aug_pred = make_aug_gt_pred(args, deepcopy(bert_model), tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
@@ -203,13 +206,13 @@ def main():
 
         if args.debug:
             logger.info(f"Length of Dataset Train: {len(train_dataset_aug_pred)} -> 30, Test: {len(test_dataset_aug_pred)} -> 30 " )
-            train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:30], test_dataset_aug_pred[:30]
+            train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
         
-        model_name = 'facebook/bart-base' if args.version == '2' else 'fnlp/bart-base-chinese'
+        model_name = 'facebook/bart-base'
         
         args.num_beams = 5
         args.inputWithKnowledge = True
-        # args.inputWithTopic=False
+        args.inputWithTopic=False
 
         model_cache_dir = os.path.join(args.home, 'model_cache', model_name)
         if args.version == '2':
@@ -241,15 +244,15 @@ def main():
         # args.task = 'knowledge'
         # train_dataset_aug_pred, test_dataset_aug_pred
         logger.info("**Shuffle Pseudo knowledge order**")
-        train_dataset_aug = pseudo_knowledge_shuffle(args, train_dataset_aug_pred, mode='train')
-        test_dataset_aug = pseudo_knowledge_shuffle(args, test_dataset_aug_pred, mode='test')
+        train_dataset_aug = pseudo_knowledge_shuffle(args, train_dataset_aug_pred, mode='train', num_knowledge=args.kers_know_candidate_knowledge_num)
+        test_dataset_aug = pseudo_knowledge_shuffle(args, test_dataset_aug_pred, mode='train', num_knowledge=args.kers_know_candidate_knowledge_num)
         logger.info(f'Input with knowledges: {args.inputWithKnowledge}, Input with topic: {args.inputWithTopic}')
-        kers_knowledge_retrieve.train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, test_dataset_aug, train_knowledgeDB, all_knowledgeDB)
+        best_hit1, best_epoch = kers_knowledge_retrieve.train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, test_dataset_aug, train_knowledgeDB, all_knowledgeDB)
 
     
     
     # For Kers Resp Gen task
-    if args.task!='resp': return
+    if 'resp' not in args.task : return
     if 'skt' in args.bert_name or args.version=='ko': 
         train_dataset_aug_pred, test_dataset_aug_pred = data_utils.process_augment_sample(train_dataset_raw, goal_list = ['movie recommendation', 'qa']), data_utils.process_augment_sample(test_dataset_raw, goal_list = ['movie recommendation', 'qa'])
         train_dataset_pred, test_dataset_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
@@ -266,13 +269,25 @@ def main():
             data['predicted_topic_confidence'] = test_dataset_pred[idx]['predicted_topic_confidence']
         # sum([i['predicted_goal'][0]==i['goal'] for i in train_dataset_aug_pred])/len(train_dataset_aug_pred)
         # sum([i['predicted_topic'][0]==i['topic'] for i in train_dataset_aug_pred])/len(train_dataset_aug_pred)
-    else: train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") 
+    else: 
+        train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") 
+        if 'know' in args.task or True: 
+            logger.info(f" RESP Knowledge label call from know task best result EPOCH: {best_epoch}")
+            args.kers_resp_candidate_knowledge_num = 5 # BEAM 5 였으므로
+            train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.output_dir, f"V_{args.version}_epoch{best_epoch}_kers_train_know.txt"))
+            test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.output_dir, f"V_{args.version}_epoch{best_epoch}_kers_test_know.txt"))
+            # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
+            # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+            data_utils.eval_pred_loads(test_dataset_aug_pred, task='know')
+            # data_utils.save_pred_json_lines(dataset, os.path.join(args.output_dir, f"V_{args.version}_epoch{best_epoch}_kers_{mode}_know.txt"), keys=['predicted_know','predicted_know_confidence'])
+            
     #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
     model_cache_dir = os.path.join(args.home, 'model_cache', args.bart_name)
     if args.version == '2':
         from models.kers import kers_decoder
         model_cache_dir = os.path.join(args.home, 'model_cache', args.kers_generator)
         tokenizer = BartTokenizer.from_pretrained(args.kers_generator, cache_dir=model_cache_dir)
+        # BartConfig
         model = kers_decoder.BartForConditionalGeneration.from_pretrained(args.kers_generator, cache_dir=model_cache_dir)
         # tokenizer = BertTokenizer.from_pretrained(args.bart_name, cache_dir=model_cache_dir)
         # model = BartForConditionalGeneration.from_pretrained(args.bart_name, cache_dir=model_cache_dir)
@@ -289,15 +304,15 @@ def main():
 
     # train_dataset_aug_pred, test_dataset_aug_pred
     if args.debug: 
-        train_dataset_resp, test_dataset_resp = train_dataset_aug_pred[:32], test_dataset_aug_pred[:32]
+        train_dataset_resp, test_dataset_resp = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
         logger.info(f"For Debugging Dataset length: 32")
     else: train_dataset_resp, test_dataset_resp = train_dataset_aug_pred, test_dataset_aug_pred
     
     
     logger.info("Train, Test Knowledge Shuffle!!!!! ")
     logger.info(f"Augmented Train dataset: {len(train_dataset_resp)}, Test dataset: {len(test_dataset_resp)}")
-    train_dataset_resp = pseudo_knowledge_shuffle(args, train_dataset_resp, mode='train')
-    test_dataset_resp = pseudo_knowledge_shuffle(args, test_dataset_resp, mode='test')
+    train_dataset_resp = pseudo_knowledge_shuffle(args, train_dataset_resp, mode='train', num_knowledge=args.kers_resp_candidate_knowledge_num)
+    test_dataset_resp = pseudo_knowledge_shuffle(args, test_dataset_resp, mode='test', num_knowledge=args.kers_resp_candidate_knowledge_num)
     logger.info(f"Augmented Train dataset: {len(train_dataset_resp)}, Test dataset: {len(test_dataset_resp)}")
     logger.info(f"train: {len(train_dataset_resp)}, test: {len(test_dataset_resp)}, Test Pseudo Hit@1: {sum([i['candidate_knowledges'][0] == i['target_knowledge'] for i in test_dataset_aug_pred]) / len(test_dataset_aug_pred):.4f}")
     train_datamodel_resp = Kers_Resp_Dataset(args, train_dataset_resp, tokenizer, mode='train')
@@ -319,14 +334,14 @@ def main():
         bleu_epoch = 0
         best_outputs = None
         best_epoch = 0
-        if args.kers_pretrain_epochs:
-            saved_model_path = os.path.join(args.home, 'model_save', f'BART_KERS_Pretrained_Know{args.kers_candidate_knowledge_num}_EPO{args.kers_pretrain_epochs}.pth')
-            if not os.path.exists(saved_model_path): 
-                logger.info(f"DO PRE-TRAIN {args.kers_pretrain_epochs} epochs")
-                for epoch in range(args.kers_pretrain_epochs):
-                    epoch_play(args, tokenizer, model, train_dataloader, optimizer, scheduler, epoch, task, mode='pretrain')
-                torch.save(model.state_dict(), saved_model_path)
-            else: model.load_state_dict(torch.load(saved_model_path, map_location=args.device))
+        # if args.kers_pretrain_epochs:
+        #     saved_model_path = os.path.join(args.home, 'model_save', f'BART_KERS_Pretrained_Know{args.kers_resp_candidate_knowledge_num}_EPO{args.kers_pretrain_epochs}.pth')
+        #     if not os.path.exists(saved_model_path): 
+        #         logger.info(f"DO PRE-TRAIN {args.kers_pretrain_epochs} epochs")
+        #         for epoch in range(args.kers_pretrain_epochs):
+        #             epoch_play(args, tokenizer, model, train_dataloader, optimizer, scheduler, epoch, task, mode='pretrain')
+        #         torch.save(model.state_dict(), saved_model_path)
+        #     else: model.load_state_dict(torch.load(saved_model_path, map_location=args.device))
         for epoch in range(args.num_epochs):
             args.data_mode = 'train'
             logger.info(f"Epoch_{epoch} {args.data_mode} {task}")
@@ -466,13 +481,13 @@ def save_preds(args, context, pred_words=None, epoch=None, new_knows=None, real_
             f.write(f"\n")
     return
 
-def pseudo_knowledge_shuffle(args, dataset_aug, mode='train'):
-    if mode=='train' and args.kers_candidate_knowledge_shuffle: logger.info(f"************ {mode.upper()} Dataset Length!! {len(dataset_aug)}, Candidate Num-Shuffled knowledge: {args.kers_candidate_knowledge_num} *Shuffled*Shuffled*Shuffled*Shuffled*Shuffled*******")
-    else: logger.info(f"************ {mode.upper()} Dataset Length !! {len(dataset_aug)}, Candidate Num-knowledge: {args.kers_candidate_knowledge_num} ************")
+def pseudo_knowledge_shuffle(args, dataset_aug, mode='train', num_knowledge=20):
+    if mode=='train' and args.kers_candidate_knowledge_shuffle: logger.info(f"************ {mode.upper()} Dataset Length!! {len(dataset_aug)}, Candidate Num-Shuffled knowledge: {num_knowledge} *Shuffled*Shuffled*Shuffled*Shuffled*Shuffled*******")
+    else: logger.info(f"************ {mode.upper()} Dataset Length !! {len(dataset_aug)}, Candidate Num-knowledge: {num_knowledge} ************")
     shuffled_dataset = deepcopy(dataset_aug)
     for data in shuffled_dataset:
         data['candidate_knowledge_label'] = deepcopy(data['candidate_knowledges'][0])
-        tmp = [[k, c] for k, c in zip(data['candidate_knowledges'][:args.kers_candidate_knowledge_num], data['candidate_confidences'][:args.kers_candidate_knowledge_num])]
+        tmp = [[k, c] for k, c in zip(data['candidate_knowledges'][:num_knowledge], data['candidate_confidences'][:num_knowledge])]
         if mode=='train' and args.kers_candidate_knowledge_shuffle: 
             shuffle(tmp)
         data['candidate_knowledges'] = [i[0] for i in tmp]
@@ -543,7 +558,7 @@ class Kers_Resp_Dataset(Dataset):  # knowledge용 데이터셋 -- 아직 KoRec�
         # self.tokenizer.padding_side = 'right' if self.mode == 'train' else 'left'
         source_input = self.tokenizer(input_dialog, max_length=self.input_max_length, padding='max_length', truncation=True)
         target = self.tokenizer(target, max_length=self.input_max_length, padding='max_length', truncation=True)
-        knowledges = self.tokenizer("knowledges: "+", ".join(set(candidate_knowledges[:self.args.kers_candidate_knowledge_num])), max_length=self.input_max_length, padding='max_length', truncation=True)
+        knowledges = self.tokenizer("knowledges: "+", ".join(set(candidate_knowledges[:self.args.kers_resp_candidate_knowledge_num])), max_length=self.input_max_length, padding='max_length', truncation=True)
         # if self.args.version=='ko':  knowledges = self.tokenizer(", ".join(set(candidate_knowledges)), max_length=self.input_max_length, padding='max_length', truncation=True)
         # else: knowledges = self.tokenizer(", ".join(set(related_knowledges)), max_length=self.input_max_length, padding='max_length', truncation=True)
         goals = self.tokenizer(f"goal: {type}, last goal: {last_type} ", max_length=self.input_max_length, padding='max_length', truncation=True)

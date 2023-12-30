@@ -38,6 +38,7 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
     # args.usePseudoTrain, args.usePseudoTest = False, False
     # logger.info(f"Train with Pseudo knowledge label: {args.usePseudoTrain}, Test with Pseudo knowledge label: {args.usePseudoTest}")
     # Fine-tune
+    best_epoch, best_hit1= 0, 0
     for epoch in range(args.num_epochs):
         # if epoch == args.num_epochs - 1: args.num_beams = beam_temp
         train_loss, dev_loss, test_loss = 0, 0, 0
@@ -46,14 +47,15 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
         new_knows = []
         model.train()
         torch.cuda.empty_cache()
+        train_data_loader.dataset.idx_list=[]
         for batch in tqdm(train_data_loader, desc=f"Epoch {epoch}__{args.data_mode}", bar_format=' {l_bar} | {bar:23} {r_bar}'):
             dialog = torch.as_tensor(batch['knowledge_task_input'], device=args.device)
-            knowledge = torch.as_tensor(batch['knowledge_task_label'], device=args.device)  # Golden label
+            gold_label = torch.as_tensor(batch['knowledge_task_label'], device=args.device)  # Golden label
             new_knows.extend([i for i in batch['is_new_knowledge']])
             ### For Pseudo Knowledge 학습 --> Target label로 Scoring
             # if args.usePseudoLabel: # Train시 Pseudo label 사용하도록 전면 수정
             # else: outputs = model(input_ids=dialog, labels = knowledge, output_hidden_states=True)
-            # if args.usePseudoTrain: knowledge = torch.as_tensor(batch['knowledge_task_pseudo_label'], device=args.device)  # Pseudo label
+            knowledge = torch.as_tensor(batch['knowledge_task_pseudo_label'], device=args.device)  # Pseudo label
             outputs = model(input_ids=dialog, labels=knowledge, output_hidden_states=True)
             loss = outputs.loss
             optimizer.zero_grad()
@@ -63,7 +65,7 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
             train_loss += loss.item()
             loss.detach()
 
-            context_word, label_word, pred_word = decode_withBeam(args, model=model, tokenizer=tokenizer, input=dialog, label=knowledge, num_beams=args.num_beams, istrain=False)
+            context_word, label_word, pred_word = decode_withBeam(args, model=model, tokenizer=tokenizer, input=dialog, label=gold_label, num_beams=args.num_beams, istrain=False)
             context_words.extend(context_word)
             pred_words.extend(pred_word)
             label_words.extend(label_word)
@@ -78,20 +80,20 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
         # # logger.info(f'Epoch_{epoch} Train loss: {train_loss}, Samples: {len(context_words)}')
         # # logger.info(f"Epoch_{epoch}_{args.data_mode} Knowledge P/R/F1/Hit@1/Hit@{args.num_beams}: {p}, {r}, {f}, {hit1}, {hit3}, {hit5} \t Train loss: {train_loss}, Samples: {len(context_words)}")
         # logger.info(f"Epoch_{epoch}_{args.data_mode} Knowledge Hit@1/Hit@3/Hit@5: {hit1}, {hit3}, {hit5} \t Train loss: {train_loss:.3f}, Samples: {len(context_words)}")
-        save_preds(args, context_words, pred_words, label_words, epoch)
+        save_preds(args, context_words, pred_words, label_words, epoch, idx_list=train_data_loader.dataset.idx_list)
 
         args.data_mode = 'test'
         model.eval()
         torch.cuda.empty_cache()
         new_knows = []
         context_words, pred_words, label_words = [], [], []
+        test_data_loader.dataset.idx_list=[]
         with torch.no_grad():
             for batch in tqdm(test_data_loader, desc=f"Epoch {epoch}__{args.data_mode}", bar_format=' {l_bar} | {bar:23} {r_bar}'):
                 dialog = torch.as_tensor(batch['knowledge_task_input'], device=args.device)
-                knowledge = torch.as_tensor(batch['knowledge_task_label'], device=args.device)  ##
+                knowledge = torch.as_tensor(batch['knowledge_task_label'], device=args.device)  ##gold label
                 new_knows.extend([int(i) for i in batch['is_new_knowledge']])
                 ### For Pseudo Knowledge 학습 --> Target label로 Scoring
-                # if args.usePseudoTest: knowledge = torch.as_tensor(batch['knowledge_task_pseudo_label'], device=args.device)
                 # Goal label로 Test하도록 (230704 이후)
                 outputs = model(input_ids=dialog, labels=knowledge, output_hidden_states=True)
                 loss = outputs.loss
@@ -114,7 +116,11 @@ def train_test_pseudo_knowledge_bart(args, model, tokenizer, train_dataset_aug, 
         logger.info(f'Epoch_{epoch} Test loss: {test_loss}, Samples: {len(context_words)}')
         logger.info(f"Epoch_{epoch}_{args.data_mode}  Knowledge     Hit@1/Hit@3/Hit@5: {hit1}, {hit3}, {hit5} \t ")
         logger.info(f"Epoch_{epoch}_{args.data_mode}  New Knowledge Hit@1/Hit@3/Hit@5: {hit1_new}, {hit3_new}, {hit5_new} \t New Knowledge Count: {sum(new_knows)}")
-        save_preds(args, context_words, pred_words, label_words, epoch, new_knows )
+        save_preds(args, context_words, pred_words, label_words, epoch, new_knows , idx_list=test_data_loader.dataset.idx_list)
+        if hit1>=best_hit1:
+            best_hit1=hit1
+            best_epoch=epoch
+    return best_hit1, best_epoch
         # data_utils.save_pred_json_lines(dataset, os.path.join(args.output_dir, f""), keys=[])
 
 
@@ -143,10 +149,12 @@ class KersKnowledgeDataset(Dataset):  # knowledge용 데이터셋
         self.augmented_raw_sample = data_sample
         self.mode = mode
         self.generate_prompt_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize('System:'))
-        self.n_related_knowledge = 20
+        # self.n_related_knowledge = 20
         self.kers_retrieve_input_length = args.kers_retrieve_input_length if 'kers_retrieve_input_length' in args else 768  # KERS Default: 768
+        self.idx_list=[]
 
     def __getitem__(self, idx):  # TODO 구현 전
+        self.idx_list.append(idx)
         data = self.augmented_raw_sample[idx]
         # cbdicKeys = ['dialog', 'user_profile', 'situation', 'response', 'goal', 'last_goal', 'topic', 'related_knowledges', 'augmented_knowledges', 'target_knowledge', 'candidate_knowledges']
         # dialog, user_profile, situation, response, type, last_type, topic, related_knowledges, augmented_knowledges, target_knowledge, candidate_knowledges = [data[i] for i in cbdicKeys]
@@ -159,20 +167,14 @@ class KersKnowledgeDataset(Dataset):  # knowledge용 데이터셋
 
         context_batch = defaultdict()
 
-        if self.args.gtpred:
-            type, topic = data['predicted_goal'][0], data['predicted_topic'][0]
-        # ## Related knowledge 범위 관련 세팅##
-        # related_knowledge_text = ""
-        # if self.args.n_candidate_knowledges > 0:  ## Pseudo related knowledge 줄 때 (약 60%로 정답포함)
-        #     related_knowledge_text = " | ".join(list(filter(lambda x: x, candidate_knowledges[:self.args.n_candidate_knowledges])))
-        # else:  ## candidate knowledge에서 사용할 때,
-        related_knowledge_text = " | ".join(list(filter(lambda x: x, candidate_knowledges)))
+        type, topic = data['predicted_goal'][0], data['predicted_topic'][0]
+        related_knowledge_text = " | ".join(list(filter(lambda x: x, candidate_knowledges[:self.args.kers_know_candidate_knowledge_num])))
 
         ## Related knowledge 범위 관련 세팅## -- 1. 해당대화전체knowledge, 2. 해당응답전까지knowledge 비교
         # related_knowledge를 candidate_knowledges에서 25개 무작위로 뽑아서 넣어줘서 돌리기
 
-        related_knowledge_text += situation  # situation
-        related_knowledge_text += user_profile  # user_profile
+        # related_knowledge_text += situation  # situation
+        # related_knowledge_text += user_profile  # user_profile
 
         max_knowledge_length = self.kers_retrieve_input_length * 5 // 10  # 768의 50%까지 knowledge데이터 넣어주기
         related_knowledge_tokens = self.tokenizer('<knowledge>' + related_knowledge_text, max_length=max_knowledge_length, truncation=True).input_ids
@@ -183,26 +185,29 @@ class KersKnowledgeDataset(Dataset):  # knowledge용 데이터셋
 
         if self.args.inputWithKnowledge:
             if self.args.inputWithTopic:
+                Exception("KERS의 세팅이 아님")
                 input = self.tokenizer('<dialog>' + dialog, max_length=self.kers_retrieve_input_length - len(related_knowledge_tokens) - len(type_token) - len(topic_token), padding='max_length', truncation=True).input_ids
                 input = related_knowledge_tokens + input + type_token + topic_token  # {TH} knowledge 를 input에서 빼보는 ablation 적용을 위해 주석 (윗줄포함)
             else:  # Original KERS (With knowledge) Setting (Related knowledges 가 존재할 때 --> 우리 방식으로 RelKnow만들어주고 2stage결과 보려고할때)
                 input = self.tokenizer('<dialog>' + dialog, max_length=self.kers_retrieve_input_length - len(related_knowledge_tokens) - len(type_token) - len(last_type_token), padding='max_length', truncation=True).input_ids
                 input = related_knowledge_tokens + input + type_token + last_type_token  # {TH} knowledge 를 input에서 빼보는 ablation 적용을 위해 주석 (윗줄포함)
-
-        else:  # KEMGCRS세팅과 같은 input (dialog + type + topic으로 knowledge예측)
-            if self.args.inputWithTopic:  ## KEMGCRS와 같은 input구성일때
-                input = self.tokenizer('<dialog>' + dialog, max_length=self.kers_retrieve_input_length - len(type_token) - len(last_type_token) - len(topic_token), padding='max_length', truncation=True).input_ids
-                input = input + type_token + last_type_token + topic_token
-            else:  # Original KERS (Without knowledges) Setting (Related knowledges 가 없을 때 --> E4의 KERS(w/o RelKnow))
-                input = self.tokenizer('<dialog>' + dialog, max_length=self.kers_retrieve_input_length - len(type_token) - len(last_type_token), padding='max_length', truncation=True).input_ids
-                input = input + type_token + last_type_token
+        else: 
+            Exception("KERS의 세팅이 아님")
+        # else:  # KEMGCRS세팅과 같은 input (dialog + type + topic으로 knowledge예측)
+        #     if self.args.inputWithTopic:  ## KEMGCRS와 같은 input구성일때
+        #         input = self.tokenizer('<dialog>' + dialog, max_length=self.kers_retrieve_input_length - len(type_token) - len(last_type_token) - len(topic_token), padding='max_length', truncation=True).input_ids
+        #         input = input + type_token + last_type_token + topic_token
+        #     else:  # Original KERS (Without knowledges) Setting (Related knowledges 가 없을 때 --> E4의 KERS(w/o RelKnow))
+        #         input = self.tokenizer('<dialog>' + dialog, max_length=self.kers_retrieve_input_length - len(type_token) - len(last_type_token), padding='max_length', truncation=True).input_ids
+        #         input = input + type_token + last_type_token
         if self.args.version=='ko':
             candidate_knowledge_label+=self.tokenizer.eos_token
             target_knowledge+=self.tokenizer.eos_token
+        
         # Train시 label: pseudo knowledge top 1
-        pseudo_label = self.tokenizer('<knowledge>' + candidate_knowledge_label, max_length=self.args.max_gen_length, padding='max_length', truncation=True).input_ids
+        pseudo_label = self.tokenizer(candidate_knowledge_label, max_length=self.args.max_gen_length, padding='max_length', truncation=True).input_ids
         # Test시 label: gold knowledge
-        label = self.tokenizer('<knowledge>' + target_knowledge, max_length=self.args.max_gen_length, padding='max_length', truncation=True).input_ids
+        label = self.tokenizer(target_knowledge, max_length=self.args.max_gen_length, padding='max_length', truncation=True).input_ids
 
         # <s> knowledge text~~ </s> 로 EOS가 제대로 들어가짐
         context_batch['knowledge_task_input'] = torch.LongTensor(input)
@@ -245,7 +250,7 @@ def know_hit_ratio(args, pred_pt, gold_pt, new_knows=None):
         return round(hit1 / len(gold_pt), 4), round(hit3 / len(gold_pt), 4), round(hit5 / len(gold_pt), 4)
 
 
-def save_preds(args, context, pred_words, label_words, epoch=None, new_knows=None):
+def save_preds(args, context, pred_words, label_words, epoch=None, new_knows=None, idx_list=None):
     # HJ: 동일 파일 덮어쓰면서 맨 윗줄에 몇번째 에폭인지만 쓰도록 수정
     mode = args.data_mode
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
@@ -257,6 +262,8 @@ def save_preds(args, context, pred_words, label_words, epoch=None, new_knows=Non
     with open(path, 'w', encoding='utf-8') as f:
         f.write(f"{args.task}, Epoch: {str(epoch)} Input and Output results {args.time}\n")
         f.write(f"Log File Name: {args.log_name} \n")
+        if idx_list: 
+            context, pred_words, label_words = [context[idx] for idx in idx_list], [pred_words[idx] for idx in idx_list], [label_words[idx] for idx in idx_list]
         for i, (ctx, pred, label) in enumerate(zip(context, pred_words, label_words)):
             if i == 500: break
             f.write(f"Source: {ctx}\n")
