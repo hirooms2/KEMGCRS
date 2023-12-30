@@ -253,6 +253,7 @@ def main():
     
     # For Kers Resp Gen task
     if 'resp' not in args.task : return
+    if 'large' in args.kers_generator: args.kers_batch_size = 8
     if 'skt' in args.bert_name or args.version=='ko': 
         train_dataset_aug_pred, test_dataset_aug_pred = data_utils.process_augment_sample(train_dataset_raw, goal_list = ['movie recommendation', 'qa']), data_utils.process_augment_sample(test_dataset_raw, goal_list = ['movie recommendation', 'qa'])
         train_dataset_pred, test_dataset_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl") #utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/ko/pred_aug/gt_test_pred_aug_dataset.pkl")
@@ -271,11 +272,24 @@ def main():
         # sum([i['predicted_topic'][0]==i['topic'] for i in train_dataset_aug_pred])/len(train_dataset_aug_pred)
     else: 
         train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl"), utils.read_pkl("/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl") 
-        if 'know' in args.task or True: 
+        if 'know' in args.task: 
             logger.info(f" RESP Knowledge label call from know task best result EPOCH: {best_epoch}")
             args.kers_resp_candidate_knowledge_num = 5 # BEAM 5 였으므로
             train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.output_dir, f"V_{args.version}_epoch{best_epoch}_kers_train_know.txt"))
             test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.output_dir, f"V_{args.version}_epoch{best_epoch}_kers_test_know.txt"))
+            # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
+            # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+            data_utils.eval_pred_loads(test_dataset_aug_pred, task='know')
+            # data_utils.save_pred_json_lines(dataset, os.path.join(args.output_dir, f"V_{args.version}_epoch{best_epoch}_kers_{mode}_know.txt"), keys=['predicted_know','predicted_know_confidence'])
+        else:
+            logger.info(f" RESP Knowledge label call from know task best result EPOCH: {best_epoch}")
+            args.kers_resp_candidate_knowledge_num = 5 # BEAM 5 였으므로
+            if args.kers_know_candidate_knowledge_num==20:
+                train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.data_dir,'pred_aug','know','kers','know20' , f"kers_train_know.txt"))
+                test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.data_dir,'pred_aug','know','kers','know20' , f"kers_test_know.txt"))
+            else: 
+                train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.data_dir,'pred_aug','know','kers','know0' , f"kers_train_know.txt"))
+                test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.data_dir,'pred_aug','know','kers','know0' , f"kers_test_know.txt"))
             # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
             # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
             data_utils.eval_pred_loads(test_dataset_aug_pred, task='know')
@@ -375,12 +389,13 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
     torch.cuda.empty_cache()
     steps=0
     contexts, resps, task_labels, gen_resps, task_preds, topics, topic_in_resps, types, knowledges = [], [], [], [], [], [], [], [], []
-    p_topics=[]
+    target_knowledges, p_topics = [], []
     evaluator = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=os.path.join(args.output_dir, f"{epoch}_{mode}_GEN_REPORT.txt") if mode=='test' else None)
+    knowledge_evaluator = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
     for batch in tqdm(data_loader, desc=f"Epoch {epoch}__{mode}", bar_format=' {l_bar} | {bar:23} {r_bar}'):
         dialog_ids, dialog_mask, response, knowledge_ids, knowledge_mask, goal_ids, goal_mask = [batch[i].to(args.device) for i in ["dialog_ids", "dialog_mask", "response", 'knowledge_ids', 'knowledge_mask', 'goal_ids', 'goal_mask']]
         input_dic = {"input_ids":dialog_ids, 'attention_mask': dialog_mask, 'labels':response}
-
+        target_knowledges.extend(batch['target_knowledge'])
         if args.originBart: pass
         else: # knowledge, goal이 들어가기 시작해야함
             input_dic['knowledge_ids']=knowledge_ids
@@ -407,6 +422,7 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
             gen_resp = tokenizer.batch_decode(gen_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=skip_special_tokens)
             task_preds.extend(gen_resp)
             evaluator.evaluate(gen_ids, response, batch_types, log=True)
+            # knowledge_evaluator.evaluate(gen_ids, batch['target_knowledge'], batch_types, log=True)
             # evaluator.evaluate(preds=gen_ids, labels=response, types=batch_types, log=True)
 
         loss = outputs[0]
@@ -429,10 +445,16 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
     if mode=='test' : 
 
         report_all = evaluator.report()
+        knowledge_evaluator.after_eval_report(task_preds[:], target_knowledges[:], types[:])
+        knowledge_report_all = knowledge_evaluator.report()
         report_text = [f"TOTAL_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
                        f"TOTAL_{epoch}_{mode}: {report_all['bleu@1']:.3f},  {report_all['bleu@2']:.3f},  {report_all['bleu@3']:.3f},  {report_all['bleu@4']:.3f},  {report_all['dist@1']:.3f},  {report_all['dist@2']:.3f},  {report_all['dist@3']:.3f},  {report_all['dist@4']:.3f}"]
+        knowledge_report_text = [f"Knowledge_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+                       f"Knowledge_{epoch}_{mode}: {knowledge_report_all['bleu@1']:.3f},  {knowledge_report_all['bleu@2']:.3f},  {knowledge_report_all['bleu@3']:.3f},  {knowledge_report_all['bleu@4']:.3f},  {knowledge_report_all['dist@1']:.3f},  {knowledge_report_all['dist@2']:.3f},  {knowledge_report_all['dist@3']:.3f},  {knowledge_report_all['dist@4']:.3f}"]
         logger.info(report_text[0])
         logger.info(report_text[1])
+        logger.info(knowledge_report_text[0])
+        logger.info(knowledge_report_text[1])
 
         report_type = evaluator.report_ByType()
         # report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
@@ -582,7 +604,8 @@ class Kers_Resp_Dataset(Dataset):  # knowledge용 데이터셋 -- 아직 KoRec�
             'type': type,
             'topic': topic,
             'p_topic': data['predicted_topic'][0],
-            'topic_in_resp': topic.lower() in response.lower()
+            'topic_in_resp': topic.lower() in response.lower(),
+            'target_knowledge': target_knowledge
         }
         return return_dic 
 
