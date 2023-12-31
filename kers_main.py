@@ -14,7 +14,7 @@ from models.ours.retriever import Retriever
 from model_play.ours import train_bert_goal_topic
 from model_play.kers import kers_knowledge_retrieve
 from random import shuffle
-from transformers import BertTokenizer, BartForConditionalGeneration, BartTokenizer
+from transformers import BertTokenizer, BartForConditionalGeneration, BartTokenizer, BartConfig
 # from config import *
 from evaluator_conv import ConvEvaluator_ByType
 from model_play.ours.train_our_rag_retrieve_gen import make_aug_gt_pred
@@ -53,6 +53,8 @@ def add_kers_specific_args(parser):
     parser.add_argument("--kers_generator", type=str, default="facebook/bart-base", help=" Method ")
     # parser.add_argument("--kers_retrieve_saved_num", type=int, default=7, help=" Method ")
     
+    parser.add_argument("--kers_resp_use_pretrained", action='store_true',  help="Kers resp en-decoder to use pretrained-bart checkpoint")
+    parser.add_argument("--kers_resp_layer_num", type=int, default=6, help="transformers: 6, base: 12, large: 24")
     parser.add_argument("--kers_know_candidate_knowledge_num", type=int, default=20, help="Know task에서 Cand know를 몇개 쓸지 여부 ")
     parser.add_argument("--kers_resp_candidate_knowledge_num", type=int, default=5, help="Resp task에서 Cand know를 몇개 쓸지 여부 ")
     parser.add_argument("--kers_candidate_knowledge_shuffle", type=str, default="TRUE", help="Cand know를 shuffle할지 말지 여부 ")
@@ -285,6 +287,7 @@ def main():
             logger.info(f" RESP Knowledge label call from know task best result EPOCH: {best_epoch}")
             args.kers_resp_candidate_knowledge_num = 5 # BEAM 5 였으므로
             if args.kers_know_candidate_knowledge_num==20:
+                logger.info(f"Load KERS Predicted knowledges: {args.kers_know_candidate_knowledge_num}")
                 train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.data_dir,'pred_aug','know','kers','know20' , f"kers_train_know.txt"))
                 test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.data_dir,'pred_aug','know','kers','know20' , f"kers_test_know.txt"))
             else: 
@@ -301,10 +304,17 @@ def main():
         from models.kers import kers_decoder
         model_cache_dir = os.path.join(args.home, 'model_cache', args.kers_generator)
         tokenizer = BartTokenizer.from_pretrained(args.kers_generator, cache_dir=model_cache_dir)
-        # BartConfig
-        model = kers_decoder.BartForConditionalGeneration.from_pretrained(args.kers_generator, cache_dir=model_cache_dir)
-        # tokenizer = BertTokenizer.from_pretrained(args.bart_name, cache_dir=model_cache_dir)
-        # model = BartForConditionalGeneration.from_pretrained(args.bart_name, cache_dir=model_cache_dir)
+        if args.kers_resp_use_pretrained: 
+            logger.info(f" KERS Resp module.. initialize from {args.kers_generator} checkpoint")
+            model = kers_decoder.BartForConditionalGeneration.from_pretrained(args.kers_generator, cache_dir=model_cache_dir)
+        else:
+            """
+            Both the encoder and decoder contain six Transformer blocks. Each Transformer block uses 12 attention heads. The word embedding and hidden state sizes are both set to 768.
+            """
+            logger.info(f" KERS Resp module.. randomly initialize with {args.kers_resp_layer_num} en-decoder layers. @@@@@@")
+            bart_config = BartConfig(encoder_layers=args.kers_resp_layer_num, decoder_layers=args.kers_resp_layer_num, d_model=768, encoder_attention_heads=12, decoder_attention_heads=12)
+            model = kers_decoder.BartForConditionalGeneration(bart_config)
+
     else: # version == 'ko'
         from models.kobart import get_pytorch_kobart_model, get_kobart_tokenizer
         from models.kers import kers_decoder
@@ -363,7 +373,7 @@ def main():
             with torch.autograd.set_detect_anomaly(False):
                 loss, perplexity = epoch_play(args, tokenizer, model, train_dataloader, optimizer, scheduler, epoch, task, mode='train')
             
-            if epoch>5:
+            if epoch>3:
                 args.data_mode = 'test'
                 model.eval()
                 with torch.no_grad():
@@ -371,7 +381,7 @@ def main():
                     if bleu_epoch <= bleu1:
                         bleu_epoch = bleu1
                         best_epoch = epoch
-                        torch.save(model.state_dict(), os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth'))
+                        torch.save(model.state_dict(), os.path.join(args.home, 'model_save', f'BART_KERS_Trained_resp_{args.gpu}.pth'))
                         logger.info(f"Loss: {loss}, Model Saved in {os.path.join(args.home, 'model_save', f'BART_KERS_Trained_{args.gpu}.pth')}")
                     # for i in output_strings:
                 #     logger.info(f"Epoch_{epoch} {args.data_mode}  {i}")

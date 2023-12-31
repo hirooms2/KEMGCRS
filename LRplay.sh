@@ -1,10 +1,26 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=2 --lr=1e-5 --log_name="Resp_init_2layer_lr1e5_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=2 --lr=1e-4 --log_name="Resp_init_2layer_lr1e4_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=2 --lr=1e-3 --log_name="Resp_init_2layer_lr1e3_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=4 --lr=1e-5 --log_name="Resp_init_4layer_lr1e5_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=4 --lr=1e-4 --log_name="Resp_init_4layer_lr1e4_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=4 --lr=1e-3 --log_name="Resp_init_4layer_lr1e3_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=6 --lr=1e-5 --log_name="Resp_init_6layer_lr1e5_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=6 --lr=1e-4 --log_name="Resp_init_6layer_lr1e4_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=6 --lr=1e-3 --log_name="Resp_init_6layer_lr1e3_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=12 --lr=1e-5 --log_name="Resp_init_12layer_lr1e5_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=12 --lr=1e-4 --log_name="Resp_init_12layer_lr1e4_KnowFromKERS_cand20" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=12 --lr=1e-3 --log_name="Resp_init_12layer_lr1e3_KnowFromKERS_cand20" 
+
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-30_150734_7b_len512_promptHJ_3e4_llama_log.txt_Epoch
+# CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --log_name=7b_len512_231207 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --epoch=10 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=train_test
 
-python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --inputWithKnowledge --kers_know_candidate_knowledge_num=0 --log_name="Resp_KnowpredFromKERS_cand20_LARGE" --kers_generator=facebook/bart-large
-python kers_main.py --version='2' --task=resp --num_epochs=10 --device=1 --inputWithKnowledge --kers_know_candidate_knowledge_num=20 --log_name="Resp_KnowpredFromKERS_candNo_LARGE" --kers_generator=facebook/bart-large
+# python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --inputWithKnowledge --kers_know_candidate_knowledge_num=0 --log_name="Resp_KnowpredFromKERS_cand20_LARGE" --kers_generator=facebook/bart-large
+# python kers_main.py --version='2' --task=resp --num_epochs=10 --device=1 --inputWithKnowledge --kers_know_candidate_knowledge_num=20 --log_name="Resp_KnowpredFromKERS_candNo_LARGE" --kers_generator=facebook/bart-large
 
 # python kers_main.py --version='2' --task=know_resp --num_epochs=10 --device=0 --inputWithKnowledge --kers_know_candidate_knowledge_num=0 --log_name="Know_NoKnowledge_resp_LARGE" --kers_generator=facebook/bart-large
 # python kers_main.py --version='2' --task=know_resp --num_epochs=10 --device=1 --inputWithKnowledge --kers_know_candidate_knowledge_num=20 --log_name="Know_20Knowledge_resp_LARGE" --kers_generator=facebook/bart-large
