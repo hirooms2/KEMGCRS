@@ -36,7 +36,7 @@ def add_kers_specific_args(parser):
     parser.add_argument("--gt_max_length", type=int, default=256, help=" Goal-Topic input max_length ")
     parser.add_argument("--gt_batch_size", type=int, default=32, help=" Method ")
 
-    parser.add_argument("--kers_batch_size", type=int, default=32, help=" KERS BATCH SIZE ")
+    parser.add_argument("--kers_batch_size", type=int, default=16, help=" KERS BATCH SIZE ")
     parser.add_argument("--kers_input_length", type=int, default=256, help=" KERS BATCH SIZE ")
     parser.add_argument("--kers_retrieve_input_length", type=int, default=768, help=" Method ")
     # parser.add_argument("--TopicTask_Train_Prompt_usePredGoal", action='store_true', help="Topic prediction시 Predicted goal 사용여부 (Train)")
@@ -207,7 +207,7 @@ def main():
         logger.info(f"!!Dataset created!!\n")
 
         if args.debug:
-            logger.info(f"Length of Dataset Train: {len(train_dataset_aug_pred)} -> 30, Test: {len(test_dataset_aug_pred)} -> 30 " )
+            logger.info(f"Length of Dataset Train: {len(train_dataset_aug_pred)} -> 10, Test: {len(test_dataset_aug_pred)} -> 10 " )
             train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
         
         model_name = 'facebook/bart-base'
@@ -305,7 +305,7 @@ def main():
         model_cache_dir = os.path.join(args.home, 'model_cache', args.kers_generator)
         tokenizer = BartTokenizer.from_pretrained(args.kers_generator, cache_dir=model_cache_dir)
         if args.kers_resp_use_pretrained: 
-            logger.info(f" KERS Resp module.. initialize from {args.kers_generator} checkpoint")
+            logger.info(f" KERS Resp module.. initialize from {args.kers_generator} checkpoint") ; logger.info("Use Pretrained Model")
             model = kers_decoder.BartForConditionalGeneration.from_pretrained(args.kers_generator, cache_dir=model_cache_dir)
         else:
             """
@@ -322,7 +322,7 @@ def main():
         from models.kers import kers_decoder
         tokenizer = get_kobart_tokenizer(cachedir=os.path.join(args.home,'model_cache','kobart'))
         model = kers_decoder.BartForConditionalGeneration.from_pretrained(get_pytorch_kobart_model(cachedir=os.path.join(args.home,'model_cache','kobart')))
-    print("Use Pretrained Model")
+    # print("Use Pretrained Model")
 
     model.resize_token_embeddings(len(tokenizer))
     model.to(args.device)

@@ -1,6 +1,12 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=Plz_Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
+CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --log_name=Plz_Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test_len256으로 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=256 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
+
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_input_length=256 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=2 --lr=1e-5 --log_name="Resp_init_2layer_lr1e5_KnowFromKERS_cand20_Input256" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_input_length=256 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=4 --lr=1e-5 --log_name="Resp_init_4layer_lr1e5_KnowFromKERS_cand20_Input256" 
+python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_input_length=256 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=6 --lr=1e-5 --log_name="Resp_init_6layer_lr1e5_KnowFromKERS_cand20_Input256" 
 
 # python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=2 --lr=1e-5 --log_name="Resp_init_2layer_lr1e5_KnowFromKERS_cand20" 
 # python kers_main.py --version='2' --task=resp --num_epochs=10 --device=0 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=2 --lr=1e-4 --log_name="Resp_init_2layer_lr1e4_KnowFromKERS_cand20" 
@@ -11,9 +17,9 @@
 # python kers_main.py --version='2' --task=resp --num_epochs=10 --device=2 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=6 --lr=1e-5 --log_name="Resp_init_6layer_lr1e5_KnowFromKERS_cand20" 
 # python kers_main.py --version='2' --task=resp --num_epochs=10 --device=2 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=6 --lr=1e-4 --log_name="Resp_init_6layer_lr1e4_KnowFromKERS_cand20" 
 # python kers_main.py --version='2' --task=resp --num_epochs=10 --device=2 --kers_know_candidate_knowledge_num=20 --kers_resp_layer_num=6 --lr=1e-3 --log_name="Resp_init_6layer_lr1e3_KnowFromKERS_cand20" 
-python kers_main.py --version='2' --task=resp --num_epochs=10 --device=3 --kers_know_candidate_knowledge_num=20 --kers_batch_size=8 --kers_resp_layer_num=12 --lr=1e-5 --log_name="Resp_init_12layer_lr1e5_KnowFromKERS_cand20" 
-python kers_main.py --version='2' --task=resp --num_epochs=10 --device=3 --kers_know_candidate_knowledge_num=20 --kers_batch_size=8 --kers_resp_layer_num=12 --lr=1e-4 --log_name="Resp_init_12layer_lr1e4_KnowFromKERS_cand20" 
-python kers_main.py --version='2' --task=resp --num_epochs=10 --device=3 --kers_know_candidate_knowledge_num=20 --kers_batch_size=8 --kers_resp_layer_num=12 --lr=1e-3 --log_name="Resp_init_12layer_lr1e3_KnowFromKERS_cand20" 
+# python kers_main.py --version='2' --task=resp --num_epochs=10 --device=3 --kers_know_candidate_knowledge_num=20 --kers_batch_size=8 --kers_resp_layer_num=12 --lr=1e-5 --log_name="Resp_init_12layer_lr1e5_KnowFromKERS_cand20" 
+# python kers_main.py --version='2' --task=resp --num_epochs=10 --device=3 --kers_know_candidate_knowledge_num=20 --kers_batch_size=8 --kers_resp_layer_num=12 --lr=1e-4 --log_name="Resp_init_12layer_lr1e4_KnowFromKERS_cand20" 
+# python kers_main.py --version='2' --task=resp --num_epochs=10 --device=3 --kers_know_candidate_knowledge_num=20 --kers_batch_size=8 --kers_resp_layer_num=12 --lr=1e-3 --log_name="Resp_init_12layer_lr1e3_KnowFromKERS_cand20" 
 
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_3e4 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-30_150734_7b_len512_promptHJ_3e4_llama_log.txt_Epoch
 # CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --log_name=7b_len512_231207 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch
@@ -176,7 +182,7 @@ python kers_main.py --version='2' --task=resp --num_epochs=10 --device=3 --kers_
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=7b_len512_promptHJ_2e4 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --learning_rate=2e-4 
 
 
-# python llama_main_finetune.py --log_name=Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
 
 
 # python llama_main_finetune.py --log_name=Llama7b_chat --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf
