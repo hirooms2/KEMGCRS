@@ -71,7 +71,7 @@ class ConvEvaluator:
 
 
 class ConvEvaluator_ByType:
-    def __init__(self, tokenizer, log_file_path):
+    def __init__(self, tokenizer, log_file_path=None):
         self.tokenizer = tokenizer
         self.reset_metric()
         if log_file_path:
