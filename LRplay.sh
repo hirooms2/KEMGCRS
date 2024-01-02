@@ -1,6 +1,9 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=2e-4 --log_name=Llama7b_chathf_len256_2e4 --llama_input_maxlen=256 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1
+CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=4e-4 --log_name=Llama7b_chathf_len512_4e4 --llama_input_maxlen=512 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1
+
 CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=Plz_Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
 CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --log_name=Plz_Llama7b_chat_len512_2023-12-07_235521_len512_Epoch5_Test_len256으로 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=256 --mode=test --lora_weights=2023-12-07_235521_Llama7b_chat_len512_llama_log.txt_Epoch5
 

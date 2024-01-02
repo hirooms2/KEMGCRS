@@ -52,7 +52,7 @@ class Prompter(object):
                 template_name = "withoutCoT"
             elif args.stage == "quiz":
                 template_name = "alpaca_legacy"
-        file_name = os.path.join(args.home, "templates", f"{template_name}.json")
+        file_name = os.path.join(args.home, "lora-alpaca","0_templates", f"{template_name}.json")
         # if not osp.exists(file_name):
         #     raise ValueError(f"Can't read {file_name}")
         if os.path.exists(file_name):
@@ -62,11 +62,13 @@ class Prompter(object):
             self.template = {
                 "description": "CRS recommendation template."
                 ,"prompt_input": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Input:\n{input}" # 안쓰임
-                ,"prompt_no_input": "Pretend you are a recommender system. I will give you a conversation between a user and you (a recommender system). \n Based on the conversation, create system response. \n Here is the conversation: \n {instruction}" # Candidate items: \n {negItems}",
+                ,"prompt_no_input": "Pretend you are a recommender system. I will give you a conversation between a user and you (a recommender system). \n Based on the conversation, create a system response. \n Here is the conversation: \n {instruction}" # Candidate items: \n {negItems}",
                 # ,"prompt_no_input": "I will give you a conversation between a user and system (a recommender system). \n Based on the conversation, create system response. \n Here is the conversation: \n {instruction}" # Candidate items: \n {negItems}",
-                ,"response_split": ""
+                ,"response_split": "### Response:"
                 }
         if self._verbose: mylogger.info(f"Using prompt template {template_name}: {self.template['description']}")
+        mylogger.info(f"Get Tamplate: {self.template}")
+
 
     def generate_prompt(
             self, instruction: str, input: Union[None, str] = None, label: Union[None, str] = None,
@@ -208,7 +210,7 @@ class LLaMaEvaluator:
             generation_output = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config, return_dict_in_generate=True, output_scores=True, max_new_tokens=max_new_tokens,)
         s = generation_output.sequences
         # output = self.tokenizer.batch_decode(s, skip_special_tokens=True)
-        # return [self.prompter.get_response(i) for i in output]
+        # return [self.prompter.get_response(i) for i in self.tokenizer.batch_decode(s, skip_special_tokens=True)]
         return self.tokenizer.batch_decode(s[:,input_ids.size()[-1]:], skip_special_tokens=True)
 
     def test(self, model=None, epoch=None):
@@ -230,6 +232,7 @@ class LLaMaEvaluator:
         topic_in_resps = []
         total_output=[]
         evaluatortype = ConvEvaluator_ByType(tokenizer= self.tokenizer, log_file_path=os.path.join(self.args.lora_weights, f"{self.args.time}_{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
+        evaluatorknowledge = ConvEvaluator_ByType(tokenizer= self.tokenizer)
         for batch in tqdm(self.dataloader, bar_format=' {percentage:3.0f} % | {bar:23} {r_bar}'):
             generated_results = []
             batched_inputs = self.tokenizer(batch[0], padding=True,max_length=self.args.llama_input_maxlen, truncation=True, return_tensors="pt")
@@ -251,19 +254,23 @@ class LLaMaEvaluator:
             topic_in_resps.extend([ ttt.lower() in rrr.lower() for ttt,rrr in zip(pred_aug['topic'], pred_aug['response'])])
             topics.extend(pred_aug['topic'])
             p_topics.extend(pred_aug['predicted_topic'][0])
-            
+            # pred_aug['target_knowledge']
             
             evaluatortype.evaluate(preds=responses_gen, labels=batch[1], types = batch_types, log=True, is_text=True)
-            
+            evaluatorknowledge.evaluate(preds=responses_gen, labels=pred_aug['target_knowledge'], types = batch_types, log=False, is_text=True)
             # if self.args.write:
             #     for i in generated_results:
             #         self.args.log_file.write(json.dumps(i, ensure_ascii=False) + '\n')
         
         total_output, output_str=[],[]
         report = evaluatortype.report()
+        report_know = evaluatorknowledge.report()
         report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
                        f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
+        report_text_know = [f"Knowledge_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+                            f"Knowledge_{epoch}_{mode}:  {report_know['bleu@1']:.3f},  {report_know['bleu@2']:.3f},  {report_know['bleu@3']:.3f},  {report_know['bleu@4']:.3f},  {report_know['dist@1']:.3f},  {report_know['dist@2']:.3f},  {report_know['dist@3']:.3f},  {report_know['dist@4']:.3f}"]
         output_str.extend(report_text)
+        output_str.extend(report_text_know)
         total_output.append(f"BLEU: 1,2,3,4 | Dist: 1,2,3,4: {report_text[-1]}")
 
         report_type = evaluatortype.report_ByType()
@@ -274,6 +281,7 @@ class LLaMaEvaluator:
 
         # evaluator.reset_metric()
         evaluatortype.reset_metric()
+        evaluatorknowledge.reset_metric()
         _, _, resp_topic_str = evaluatortype.gen_resp_topic(self.args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resps, topic_in_resps=topic_in_resps, p_topics=p_topics)
         #     if cnt % 100 == 0 and cnt != 0:
         #         # wandb.log({"hit_ratio": (hit / cnt)})
@@ -565,7 +573,7 @@ def add_ours_specific_args(parser=None):
     parser.add_argument("--lora_weights", type=str, default='')
     parser.add_argument('--mode', type=str, default='train_test', choices=['train', 'test', 'valid', 'train_test'])
     parser.add_argument('--log_name', type=str, default='')
-    parser.add_argument('--prompt', type=str, default='withoutCoT')
+    parser.add_argument('--prompt', type=str, default='template_1')
     parser.add_argument('--data_type', type=str, default='default')
     # parser.add_argument('--isNew', type=bool, default=False)
     parser.add_argument('--oversample_ratio', type=int, default=1)
