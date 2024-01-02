@@ -312,8 +312,10 @@ def main():
             Both the encoder and decoder contain six Transformer blocks. Each Transformer block uses 12 attention heads. The word embedding and hidden state sizes are both set to 768.
             """
             logger.info(f" KERS Resp module.. randomly initialize with {args.kers_resp_layer_num} en-decoder layers. @@@@@@")
+            d_model, attention_heads = 768, 12
             bart_config = BartConfig(encoder_layers=args.kers_resp_layer_num, decoder_layers=args.kers_resp_layer_num, d_model=768, encoder_attention_heads=12, decoder_attention_heads=12)
             model = kers_decoder.BartForConditionalGeneration(bart_config)
+            if args.kers_resp_layer_num>=12: args.kers_batch_size=8
 
     else: # version == 'ko'
         from models.kobart import get_pytorch_kobart_model, get_kobart_tokenizer
@@ -325,6 +327,7 @@ def main():
     model.resize_token_embeddings(len(tokenizer))
     model.to(args.device)
     logger.info(model.config)
+    if model.config.d_model * model.config.encoder_attention_heads * model.config.encoder_layers >= 60000: args.kers_batch_size=8
 
     # train_dataset_aug_pred, test_dataset_aug_pred
     if args.debug: 
