@@ -406,13 +406,17 @@ def llama_finetune(args, tokenizer, evaluator,
         result["labels"] = result["input_ids"].copy()
         return result
 
-    def generate_and_tokenize_prompt(data_point):
+    def generate_and_tokenize_prompt(data_point, writeFlag=None):
         full_prompt = prompter.generate_prompt(
             instruction=data_point["instruction"],
             input=data_point["input"],
             label=data_point["output"]
             # data_point['isNew']
         )
+        if writeFlag:
+            mylogger.info("==========First Training sample==========\n")
+            mylogger.info(f"{full_prompt}\n")
+
         tokenized_full_prompt = tokenize(full_prompt)
         if not train_on_inputs:
             user_prompt = prompter.generate_prompt(data_point["instruction"], data_point["input"])
@@ -426,13 +430,17 @@ def llama_finetune(args, tokenizer, evaluator,
     for inst, lab in zip(instructions, labels):
         data.append({"instruction": inst, "input": "", "output": lab})
     # pkl
+    
+    first_sample = Dataset.from_pandas(pd.DataFrame([data[0]]))
     data = datasetsDataset.from_pandas(pd.DataFrame(data))
 
     if val_set_size > 0:
+        Exception("Val Set Size ??? ")
         train_val = data.train_test_split(test_size=val_set_size, shuffle=True, seed=42)
         train_data = (train_val["train"].shuffle().map(generate_and_tokenize_prompt))
         val_data = (train_val["test"].shuffle().map(generate_and_tokenize_prompt))
     else:
+        generate_and_tokenize_prompt(first_sample[0], True)
         train_data = data.shuffle().map(generate_and_tokenize_prompt)
         val_data = None
     cache_dir = os.path.join(args.home, 'model_cache', base_model)
@@ -623,8 +631,8 @@ def main(args=None):
     train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'train_pred_aug_dataset.pkl')) , utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'test_pred_aug_dataset.pkl'))
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
     
-    train_instructions, train_labels = [i['dialog'].replace("[SEP]", "\n") for i in train_dataset_aug_pred], [i['response'] for i in train_dataset_aug_pred]
-    test_instructions, test_labels = [i['dialog'].replace("[SEP]", "") for i in test_dataset_aug_pred], [i['response'] for i in test_dataset_aug_pred]
+    train_instructions, train_labels = [i['dialog'].replace("[SEP]", "\n") for i in train_dataset_aug_pred], [i['response'].replace("[SEP]", "") for i in train_dataset_aug_pred]
+    test_instructions, test_labels = [i['dialog'].replace("[SEP]", "\n") for i in test_dataset_aug_pred], [i['response'].replace("[SEP]", "") for i in test_dataset_aug_pred]
 
     if 'llama' in args.base_model.lower():
         cache_dir = os.path.join(args.home, 'model_cache', args.base_model)
@@ -633,7 +641,7 @@ def main(args=None):
                                    prompt_template_name=args.prompt, train_auged=train_dataset_aug_pred, test_auged=test_dataset_aug_pred)
         if 'train' in args.mode:
             llama_finetune(args=args, evaluator=evaluator, tokenizer=tokenizer, instructions=train_instructions,
-                           labels=train_labels, num_epochs=args.epoch,
+                           labels=train_labels, num_epochs=args.epoch, 
                            prompt_template_name=args.prompt)
         if 'test' in args.mode:
             # 특정 weight 지정 없이, 모든 epoch 에 해당하는 weights test
