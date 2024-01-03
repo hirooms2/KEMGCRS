@@ -46,12 +46,12 @@ class Prompter(object):
     def __init__(self, args, template_name: str = "", verbose: bool = False):
         self._verbose = verbose
         self.args = args
-        if not template_name:
-            # Enforce the default here, so the constructor can be called with '' and will not break.
-            if args.stage == "crs":
-                template_name = "withoutCoT"
-            elif args.stage == "quiz":
-                template_name = "alpaca_legacy"
+        # if not template_name:
+        #     # Enforce the default here, so the constructor can be called with '' and will not break.
+        #     if args.stage == "crs":
+        #         template_name = "withoutCoT"
+        #     elif args.stage == "quiz":
+        #         template_name = "alpaca_legacy"
         file_name = os.path.join(args.home, "lora-alpaca","0_templates", f"{template_name}.json")
         # if not osp.exists(file_name):
         #     raise ValueError(f"Can't read {file_name}")
@@ -234,6 +234,8 @@ class LLaMaEvaluator:
         total_output=[]
         evaluatortype = ConvEvaluator_ByType(tokenizer= self.tokenizer, log_file_path=os.path.join(self.args.lora_weights, f"{self.args.time}_{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
         evaluatorknowledge = ConvEvaluator_ByType(tokenizer= self.tokenizer)
+        self.dataloader.tokenizer.padding_side = 'left'
+        self.dataloader.tokenizer.truncation_side = 'left'
         for batch in tqdm(self.dataloader, bar_format=' {percentage:3.0f} % | {bar:23} {r_bar}'):
             generated_results = []
             batched_inputs = self.tokenizer(batch[0], padding=True,max_length=self.args.llama_input_maxlen, truncation=True, return_tensors="pt")
@@ -398,7 +400,7 @@ def llama_finetune(args, tokenizer, evaluator,
     # if len(wandb_watch) > 0: os.environ["WANDB_WATCH"] = wandb_watch
     # if len(wandb_log_model) > 0: os.environ["WANDB_LOG_MODEL"] = wandb_log_model
     tokenizer.truncation_side='left'
-    tokenizer.padding_side='left'
+    tokenizer.padding_side='right'
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings
         # but again, gotta move fast
@@ -454,8 +456,8 @@ def llama_finetune(args, tokenizer, evaluator,
     )
 
     tokenizer.pad_token_id = (0)  # unk. we want this to be different from the eos token
-    tokenizer.truncation_side = 'left'
-    tokenizer.padding_side = "left"  # Allow batched inference
+    # tokenizer.truncation_side = 'left'
+    # tokenizer.padding_side = "left"  # Allow batched inference
 
     model = prepare_model_for_int8_training(model)
 
@@ -574,7 +576,7 @@ def add_ours_specific_args(parser=None):
     parser.add_argument("--lora_weights", type=str, default='')
     parser.add_argument('--mode', type=str, default='train_test', choices=['train', 'test', 'valid', 'train_test'])
     parser.add_argument('--log_name', type=str, default='')
-    parser.add_argument('--prompt', type=str, default='template_1')
+    parser.add_argument('--prompt', type=str, default='')
     parser.add_argument('--data_type', type=str, default='default')
     # parser.add_argument('--isNew', type=bool, default=False)
     parser.add_argument('--oversample_ratio', type=int, default=1)

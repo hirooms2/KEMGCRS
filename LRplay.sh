@@ -1,6 +1,7 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=7bhf_len512_3e4_prompt3 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_3
 # CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Llama7b_chathf_len512_3e4_prompt0 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_0
 
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=2e-4 --log_name=Llama7b_chathf_len256_2e4 --llama_input_maxlen=256 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=test --prompt=template_1 --lora_weights=2024-01-02_200254_Llama7b_chathf_len256_2e4_llama_log.txt_Epoch
