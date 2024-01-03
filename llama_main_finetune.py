@@ -166,8 +166,10 @@ class LLaMaEvaluator:
         if self.args.lora_weights != "": lora_weights = self.args.lora_weights
         mylogger.info(f'prepare new model for evaluating || Model: {base_model}, lora_weights: {lora_weights}')
         model_cache_dir = os.path.join(self.args.home, 'model_cache', base_model)
-        assert (base_model), "Please specify a --base_model, e.g. --base_model='huggyllama/llama-7b'"
         
+        assert (base_model), "Please specify a --base_model, e.g. --base_model='huggyllama/llama-7b'"
+        assert os.path.exists(lora_weights), "Lora weitghts folder Not Exists!!!"
+
         if torch.cuda.is_available(): device = "cuda"
         else: device = "cpu"
         
