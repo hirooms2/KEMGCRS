@@ -132,11 +132,6 @@ class Textdataset(Dataset):
         self.test_dataset_pred_aug=test_dataset_pred_aug
 
     def __getitem__(self, idx):
-        # tokenizer.padding_side = 'left'
-        # inputs = self.tokenizer(self.data_samples[idx], padding=True, return_tensors="pt", max_length=args.max_input_length, truncation=True)
-        # input_ids = inputs["input_ids"].to(self.args.device_id)
-        # if isinstance(idx, List): idx = idx[0]
-        
         return self.instructions[idx], self.labels[idx], self.test_dataset_pred_aug[idx]
 
     def __len__(self):
@@ -400,7 +395,7 @@ def llama_finetune(args, tokenizer, evaluator,
     # if len(wandb_watch) > 0: os.environ["WANDB_WATCH"] = wandb_watch
     # if len(wandb_log_model) > 0: os.environ["WANDB_LOG_MODEL"] = wandb_log_model
     tokenizer.truncation_side='left'
-    tokenizer.padding_side='right'
+    tokenizer.padding_side='right' # Train 시 GPT계열의 padding side는 right --> Test시 left padding
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings
         # but again, gotta move fast
@@ -552,7 +547,7 @@ def add_ours_specific_args(parser=None):
 
     parser.add_argument("--device", type=str, default='0')
 
-    parser.add_argument('--llama_input_maxlen', type=int, default=256)
+    parser.add_argument('--llama_input_maxlen', type=int, default=512)
 
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--eval_batch_size', type=int, default=8)
@@ -628,8 +623,8 @@ def main(args=None):
     train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'train_pred_aug_dataset.pkl')) , utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'test_pred_aug_dataset.pkl'))
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
     
-    train_instructions, train_labels = [i['dialog'] for i in train_dataset_aug_pred], [i['response'] for i in train_dataset_aug_pred]
-    test_instructions, test_labels = [i['dialog'] for i in test_dataset_aug_pred], [i['response'] for i in test_dataset_aug_pred]
+    train_instructions, train_labels = [i['dialog'].replace("[SEP]", "\n") for i in train_dataset_aug_pred], [i['response'] for i in train_dataset_aug_pred]
+    test_instructions, test_labels = [i['dialog'].replace("[SEP]", "") for i in test_dataset_aug_pred], [i['response'] for i in test_dataset_aug_pred]
 
     if 'llama' in args.base_model.lower():
         cache_dir = os.path.join(args.home, 'model_cache', args.base_model)
