@@ -7,7 +7,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer, GenerationConfig, LlamaForCausalLM, LlamaTokenizer, Trainer
 import transformers
 import argparse
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from typing import Union
 from peft import LoraConfig, get_peft_model, get_peft_model_state_dict # prepare_model_for_kbit_training,prepare_model_for_int8_training,set_peft_model_state_dict
@@ -28,7 +28,7 @@ import pandas as pd
 import torch
 import transformers
 from datasets import load_dataset
-from datasets import Dataset as datasetsDataset
+from datasets import Dataset # as datasetsDataset
 from transformers import Trainer, TrainingArguments, TrainerState, TrainerControl
 # import wandb
 # from peft import PeftModel
@@ -80,6 +80,7 @@ class Prompter(object):
         if input: res = self.template["prompt_input"].format(instruction=instruction, input=input)
         else: res = self.template["prompt_no_input"].format(instruction=instruction)
         if label: 
+            if res[-8: ]=='System: ' and label[:8]=='System: ' : label = label[8:]
             res = f"{res}{label}"
         # if label and self.args.isNew is True:
         #     if isNew is False:
@@ -123,7 +124,7 @@ class QueryEvalCallback(TrainerCallback):
         # # mylogger.info(kwargs)
         # mylogger.info("==============================End of evaluate step==============================")
 
-class Textdataset(Dataset):
+class Textdataset(torch.utils.data.Dataset):
     def __init__(self, args, instructions, labels, tokenizer, test_dataset_pred_aug):
         self.args = args
         self.instructions = instructions
@@ -434,7 +435,7 @@ def llama_finetune(args, tokenizer, evaluator,
     # pkl
     
     first_sample = Dataset.from_pandas(pd.DataFrame([data[0]]))
-    data = datasetsDataset.from_pandas(pd.DataFrame(data))
+    data = Dataset.from_pandas(pd.DataFrame(data))
 
     if val_set_size > 0:
         Exception("Val Set Size ??? ")

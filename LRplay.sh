@@ -3,6 +3,9 @@
 
 # --train_on_inputs=False --system_template --do_not_create user's response 
 
+CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_system 
+
+
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=7bhf_len512_3e4_prompt3 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_3
 # CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Llama7b_chathf_len512_3e4_prompt0 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_0
 
