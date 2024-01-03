@@ -67,7 +67,8 @@ class Prompter(object):
                 ,"response_split": "### Response:"
                 }
         if self._verbose: mylogger.info(f"Using prompt template {template_name}: {self.template['description']}")
-        mylogger.info(f"Get Tamplate: {self.template}")
+        for k,v in self.template.items():
+            mylogger.info(f"Tamplate: {k}: {v}")
 
 
     def generate_prompt(
@@ -655,8 +656,8 @@ def main(args=None):
                     evaluator.test()
                 else:
                     origin_lora_weights_epochs = args.lora_weights[args.lora_weights.rfind('/') + 1:]
-                    weights_list = sorted(list(filter(lambda x: origin_lora_weights_epochs in x , os.listdir(args.lora_path))))
-                    sorted(weights_list)
+                    weights_list = sorted(list(filter(lambda x: origin_lora_weights_epochs in x , os.listdir(args.lora_path))), reverse=True)[:-4]
+                    # sorted(weights_list)
                     mylogger.info(f"<Weights list>: [{weights_list}]")
                     for e, lora_weight_path in enumerate(weights_list):
                         mylogger.info(f"Test at {args.lora_weights}")
