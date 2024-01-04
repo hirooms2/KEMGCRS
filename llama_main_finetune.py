@@ -232,8 +232,8 @@ class LLaMaEvaluator:
         total_output=[]
         evaluatortype = ConvEvaluator_ByType(tokenizer= self.tokenizer, log_file_path=os.path.join(self.args.lora_weights, f"{self.args.time}_{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
         evaluatorknowledge = ConvEvaluator_ByType(tokenizer= self.tokenizer)
-        self.dataloader.tokenizer.padding_side = 'left'
-        self.dataloader.tokenizer.truncation_side = 'left'
+        self.dataloader.dataset.tokenizer.padding_side = 'left'
+        self.dataloader.dataset.tokenizer.truncation_side = 'left'
         for batch in tqdm(self.dataloader, bar_format=' {percentage:3.0f} % | {bar:23} {r_bar}'):
             generated_results = []
             batched_inputs = self.tokenizer(batch[0], padding=True,max_length=self.args.llama_input_maxlen, truncation=True, return_tensors="pt")
