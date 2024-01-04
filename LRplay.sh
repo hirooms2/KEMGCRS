@@ -3,15 +3,9 @@
 
 # --train_on_inputs=False --system_template --do_not_create user's response 
 
-CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=test --prompt=template_system --lora_weights=2024-01-03_231725_Lm7bhf_len512_3e4_prompt_System_NoSEP_llama_log.txt_Epoch 
-CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP_TrainOnInputFalse --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=test --train_on_inputs=False --prompt=template_system  --lora_weights=2024-01-03_232612_Lm7bhf_len512_3e4_prompt_System_NoSEP_TrainOnInputFalse_llama_log.txt_Epoch
-CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt1_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=test --prompt=template_1 --lora_weights=2024-01-03_232404_Lm7bhf_len512_3e4_prompt1_NoSEP_llama_log.txt_Epoch
-
-
-
 CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_system 
-CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP_TrainOnInputFalse --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --train_on_inputs=False --prompt=template_system 
 CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt1_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1
+CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP_TrainOnInputFalse --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --train_on_inputs=False --prompt=template_system 
 
 
 

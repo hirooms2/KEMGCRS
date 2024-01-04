@@ -232,7 +232,7 @@ class LLaMaEvaluator:
         total_output=[]
         evaluatortype = ConvEvaluator_ByType(tokenizer= self.tokenizer, log_file_path=os.path.join(self.args.lora_weights, f"{self.args.time}_{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
         evaluatorknowledge = ConvEvaluator_ByType(tokenizer= self.tokenizer)
-        self.dataloader.dataset.tokenizer.padding_side = 'left'
+        # self.dataloader.dataset.tokenizer.padding_side = 'left'
         self.dataloader.dataset.tokenizer.truncation_side = 'left'
         for batch in tqdm(self.dataloader, bar_format=' {percentage:3.0f} % | {bar:23} {r_bar}'):
             generated_results = []
@@ -398,7 +398,7 @@ def llama_finetune(args, tokenizer, evaluator,
     # if len(wandb_watch) > 0: os.environ["WANDB_WATCH"] = wandb_watch
     # if len(wandb_log_model) > 0: os.environ["WANDB_LOG_MODEL"] = wandb_log_model
     tokenizer.truncation_side='left'
-    tokenizer.padding_side='right' # Train 시 GPT계열의 padding side는 right --> Test시 left padding
+    # tokenizer.padding_side='right' # Train 시 GPT계열의 padding side는 right --> Test시 left padding
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings
         # but again, gotta move fast
@@ -463,7 +463,7 @@ def llama_finetune(args, tokenizer, evaluator,
 
     tokenizer.pad_token_id = (0)  # unk. we want this to be different from the eos token
     # tokenizer.truncation_side = 'left'
-    # tokenizer.padding_side = "left"  # Allow batched inference
+    tokenizer.padding_side = "left"  # Allow batched inference
 
     model = prepare_model_for_int8_training(model)
 
