@@ -56,14 +56,15 @@ class Prompter(object):
         # if not osp.exists(file_name):
         #     raise ValueError(f"Can't read {file_name}")
         if os.path.exists(file_name):
+            mylogger.info(f"Load Template: {template_name}")
             with open(file_name) as fp:
                 self.template = json.load(fp)
         else:
-            self.template = {
+            mylogger.info(f"No template_name --> Load Default Template !! ")
+            self.template = { # BEST 결과 template인가?
                 "description": "CRS recommendation template."
-                ,"prompt_input": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Input:\n{input}" # 안쓰임
-                ,"prompt_no_input": "Pretend you are a recommender system. I will give you a conversation between a user and you (a recommender system). \n Based on the conversation, create a system response. \n Here is the conversation: \n {instruction}" # Candidate items: \n {negItems}",
-                # ,"prompt_no_input": "I will give you a conversation between a user and system (a recommender system). \n Based on the conversation, create system response. \n Here is the conversation: \n {instruction}" # Candidate items: \n {negItems}",
+                ,"prompt_input": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Input:\n{input}"
+                ,"prompt_no_input": "Pretend you are a recommender system. I will give you a conversation between a user and you (a recommender system). \n Based on the conversation, create system's response. \n Here is the conversation: \n {instruction} \n\n### Response:" # Candidate items: \n {negItems}",
                 ,"response_split": "### Response:"
                 }
         if self._verbose: mylogger.info(f"Using prompt template {template_name}: {self.template['description']}")
@@ -209,7 +210,9 @@ class LLaMaEvaluator:
             generation_output = model.generate(input_ids=input_ids, attention_mask=attention_mask, generation_config=generation_config, return_dict_in_generate=True, output_scores=True, max_new_tokens=max_new_tokens,)
         s = generation_output.sequences
         # output = self.tokenizer.batch_decode(s, skip_special_tokens=True)
-        # return [self.prompter.get_response(i) for i in self.tokenizer.batch_decode(s, skip_special_tokens=True)]
+        
+        # return [self.prompter.get_response(i) for i in self.tokenizer.batch_decode(s, skip_special_tokens=True)] #### 
+        
         return self.tokenizer.batch_decode(s[:,input_ids.size()[-1]:], skip_special_tokens=True)
 
     def test(self, model=None, epoch=None):
@@ -233,11 +236,10 @@ class LLaMaEvaluator:
         evaluatortype = ConvEvaluator_ByType(tokenizer= self.tokenizer, log_file_path=os.path.join(self.args.lora_weights, f"{self.args.time}_{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
         evaluatorknowledge = ConvEvaluator_ByType(tokenizer= self.tokenizer)
         # self.dataloader.dataset.tokenizer.padding_side = 'left'
-        self.dataloader.dataset.tokenizer.truncation_side = 'left'
+        # self.dataloader.dataset.tokenizer.truncation_side = 'left'
         for batch in tqdm(self.dataloader, bar_format=' {percentage:3.0f} % | {bar:23} {r_bar}'):
             generated_results = []
-            batched_inputs = self.tokenizer(batch[0], padding=True,max_length=self.args.llama_input_maxlen, truncation=True, return_tensors="pt")
-            batched_labels = self.tokenizer(batch[1], padding=True,max_length=self.args.llama_input_maxlen, truncation=True, return_tensors="pt") # truncation=True, max_length=cutoff_len, padding=False
+            batched_inputs = self.tokenizer(batch[0], padding=True,  return_tensors="pt")
             input_ids = batched_inputs["input_ids"].to(self.args.device_id)
             attention_mask = batched_inputs["attention_mask"].to(self.args.device_id)
             
@@ -397,18 +399,19 @@ def llama_finetune(args, tokenizer, evaluator,
     # if len(wandb_project) > 0: os.environ["WANDB_PROJECT"] = wandb_project
     # if len(wandb_watch) > 0: os.environ["WANDB_WATCH"] = wandb_watch
     # if len(wandb_log_model) > 0: os.environ["WANDB_LOG_MODEL"] = wandb_log_model
-    tokenizer.truncation_side='left'
+    # tokenizer.truncation_side='left'
     # tokenizer.padding_side='right' # Train 시 GPT계열의 padding side는 right --> Test시 left padding
     def tokenize(prompt, add_eos_token=True):
         # there's probably a way to do this with the tokenizer settings
         # but again, gotta move fast
-        result = tokenizer(prompt, truncation=True, max_length=cutoff_len, padding=False, return_tensors=None,)
+        # result = tokenizer(prompt, truncation=True, max_length=cutoff_len, padding=False, return_tensors=None,) # Main에서 cutoff 하게되면 필요없으므로 주석처리
+        result = tokenizer(prompt, padding=False, return_tensors=None,)
         if (result["input_ids"][-1] != tokenizer.eos_token_id and len(result["input_ids"]) < cutoff_len and add_eos_token) :
             result["input_ids"].append(tokenizer.eos_token_id)
             result["attention_mask"].append(1)
         result["labels"] = result["input_ids"].copy()
         return result
-
+    
     def generate_and_tokenize_prompt(data_point, writeFlag=None):
         full_prompt = prompter.generate_prompt(
             instruction=data_point["instruction"],
@@ -445,6 +448,7 @@ def llama_finetune(args, tokenizer, evaluator,
     else:
         generate_and_tokenize_prompt(first_sample[0], True)
         train_data = data.shuffle().map(generate_and_tokenize_prompt)
+        mylogger.info(tokenizer.decode(train_data[0]['input_ids']))
         val_data = None
     cache_dir = os.path.join(args.home, 'model_cache', base_model)
     mylogger.info(f"Train instruction length avg: {sum([len(i) for i in train_data['instruction']])/len(train_data):.1f}")
@@ -586,14 +590,14 @@ def add_ours_specific_args(parser=None):
     parser.add_argument('--data_type', type=str, default='default')
     # parser.add_argument('--isNew', type=bool, default=False)
     parser.add_argument('--oversample_ratio', type=int, default=1)
-    parser.add_argument('--train_response', type=bool, default=False)
-    parser.add_argument('--num_reviews', type=int, default=1)
+    # parser.add_argument('--train_response', type=bool, default=False)
+    # parser.add_argument('--num_reviews', type=int, default=1)
     parser.add_argument('--train_on_inputs', type=bool, default=True)
-    parser.add_argument('--merge', type=bool, default=False)
-    parser.add_argument('--quiz_merge', type=bool, default=False)
-    parser.add_argument('--origin_augment', type=bool, default=False)
-    parser.add_argument('--all_merge', type=bool, default=False)
-    parser.add_argument('--plot_merge', type=bool, default=False)
+    # parser.add_argument('--merge', type=bool, default=False)
+    # parser.add_argument('--quiz_merge', type=bool, default=False)
+    # parser.add_argument('--origin_augment', type=bool, default=False)
+    # parser.add_argument('--all_merge', type=bool, default=False)
+    # parser.add_argument('--plot_merge', type=bool, default=False)
     return parser
 
 def initLogging(args):
@@ -610,6 +614,17 @@ def initLogging(args):
     except: pass
     mylogger.info('Commend: {}'.format(', '.join(map(str, sys.argv))))
     return mylogger
+
+
+def cutoffInstruction(tokenizer, instructions, length, reverse=False):
+    new_instructions = []
+    for data in tqdm(instructions):
+        if reverse: # use Last length-size tokens
+            new_instructions.append(tokenizer.decode(tokenizer(data).input_ids[1:][-length:]))
+        else: # Use First length-size tokens
+            new_instructions.append(tokenizer.decode(tokenizer(data).input_ids[1:][:length]))
+    mylogger.info('[Finish Cutting-off the instructions]')
+    return new_instructions
 
 def main(args=None):
     parser = argparse.ArgumentParser(description="ours_main.py")
@@ -634,8 +649,14 @@ def main(args=None):
     train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'train_pred_aug_dataset.pkl')) , utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'test_pred_aug_dataset.pkl'))
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
     
+    cache_dir = os.path.join(args.home, 'model_cache', args.base_model)
+    tokenizer = LlamaTokenizer.from_pretrained(args.base_model, cache_dir = cache_dir)
+    
     train_instructions, train_labels = [i['dialog'].replace("[SEP]", "\n") for i in train_dataset_aug_pred], [i['response'].replace("[SEP]", "") for i in train_dataset_aug_pred]
     test_instructions, test_labels = [i['dialog'].replace("[SEP]", "\n") for i in test_dataset_aug_pred], [i['response'].replace("[SEP]", "") for i in test_dataset_aug_pred]
+
+    train_instructions = cutoffInstruction(tokenizer, train_instructions, args.llama_input_maxlen, True)
+    test_instructions = cutoffInstruction(tokenizer, test_instructions, args.llama_input_maxlen, True)
 
     if 'llama' in args.base_model.lower():
         cache_dir = os.path.join(args.home, 'model_cache', args.base_model)

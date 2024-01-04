@@ -203,7 +203,7 @@ class Args:
     def __init__(self, version) -> None:
         self.version = version
 
-def conv_gen_eval(version='2', model_result='bartbase', when='231229'):
+def conv_gen_eval(version='2', model_result='bartbase', when='231229', fixedPath=None):
     import os
     # home, bert_name = '/home/work/CRSTEST/KEMGCRS/', 'bert-base-uncased'
     
@@ -215,13 +215,22 @@ def conv_gen_eval(version='2', model_result='bartbase', when='231229'):
     knowledges3711=[i['target_knowledge'] for i in test_dataset]
     
     rep_path = os.path.join(home, 'temp_code', 'hitgen', version, when,model_result) # "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
+    if fixedPath: rep_path = fixedPath
 
     types, preds, labels = [], [], []
     with open(rep_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
         for line in lines:
             linedic = json.loads(line)
-            preds.append(linedic['pred'])
+            predtxt=""
+            if 'User: ' in linedic['pred']: 
+                predtxt = linedic['pred'].split('User')[0]
+            else: predtxt = linedic['pred']
+            
+            if predtxt[:8]!='System: ' and linedic['label'][:8]=='System: ': 
+                preds.append(f"System: {predtxt}")
+            else: 
+                preds.append(linedic['pred'])
             labels.append(linedic['label'])
             types.append(linedic['type'])
     evaluator.after_eval_report(preds[:], labels[:], types[:])

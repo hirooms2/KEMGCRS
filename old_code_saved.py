@@ -22,8 +22,12 @@ if __name__=='__main__':
 
 
 
-
 if False: ## train_our_rag_retrieve_gen 에서 쓰던 epoch_play
+    modules = []
+    modules = [bert_model.encoder.layer, bert_model.embeddings]
+    for module in modules:
+        for param in module.parameters():
+            param.requires_grad = False
     def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch, faiss_dataset, mode='train'):
         from tqdm import tqdm
         # data_loader

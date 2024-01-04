@@ -2,10 +2,12 @@
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
 # --train_on_inputs=False --system_template --do_not_create user's response 
+CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_New --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_system 
 
+
+CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --log_name=Plz_L7b_chat_len512 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --epoch=7
 CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_system 
 CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt1_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1
-CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP_TrainOnInputFalse --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --train_on_inputs=False --prompt=template_system 
 
 
 
