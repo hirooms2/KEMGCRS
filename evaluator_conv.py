@@ -213,13 +213,24 @@ def conv_gen_eval(version='2', model_result='bartbase', when='231229', fixedPath
     evaluator_knowledgebleu = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
     test_dataset= read_pkl('/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl') # Data for true type, topic, knowledges
     knowledges3711=[i['target_knowledge'] for i in test_dataset]
-    
+    type3711=[i['goal'] for i in test_dataset]
     rep_path = os.path.join(home, 'temp_code', 'hitgen', version, when,model_result) # "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
     if fixedPath: rep_path = fixedPath
 
     types, preds, labels = [], [], []
-    with open(rep_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
+    if 'json' in rep_path: 
+        lines=[]
+        with open(rep_path) as f: 
+            lines = json.load(f)
+            assert len(lines) == len(type3711), "Line numbering Error"
+            types = type3711
+            for line in lines:
+                preds.append(line['GEN'])
+                labels.append(line['LABEL'])
+                # line['TARGET_KNOW']
+    else:
+        with open(rep_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
         for line in lines:
             linedic = json.loads(line)
             predtxt=""
@@ -314,5 +325,6 @@ if __name__ == '__main__':
     import json
 
     # conv_gen_eval(version='2', model_result='bartbase', when='231229')
-    conv_gen_eval(version='2', model_result='kers_base_10', when='231229')
+    # conv_gen_eval(version='2', model_result='kers_base_10', when='231229')
+    conv_gen_eval(version='2', model_result='chatgpt_withPassage.json', when='231229')
     pass

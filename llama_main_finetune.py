@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from typing import Union
 from peft import LoraConfig, get_peft_model, get_peft_model_state_dict # prepare_model_for_kbit_training,prepare_model_for_int8_training,set_peft_model_state_dict
-
+import data_utils
 from loguru import logger as mylogger
 from datetime import datetime
 from pytz import timezone
@@ -78,8 +78,11 @@ class Prompter(object):
             ) -> str:
         # returns the full prompt from instruction and optional input
         # if a label (=response, =output) is provided, it's also appended.
-        if input: res = self.template["prompt_input"].format(instruction=instruction, input=input)
-        else: res = self.template["prompt_no_input"].format(instruction=instruction)
+        if input: 
+            input_text= "\n".join([f"Passage{idx+1}: {inp}" for idx, inp in enumerate(input)])
+            res = self.template["prompt_input"].format(instruction=instruction, input=input_text)
+        else: 
+            res = self.template["prompt_no_input"].format(instruction=instruction)
         if label: 
             if res[-8: ]=='System: ' and label[:8]=='System: ' : label = label[8:]
             res = f"{res}{label}"
@@ -141,9 +144,10 @@ class Textdataset(torch.utils.data.Dataset):
 
 class LLaMaEvaluator:
     def __init__(self, args, tokenizer, instructions: list = None, labels: list = None, negItems: list = None,
-                 prompt_template_name: str = "", train_auged=None, test_auged=None):
+                 prompt_template_name: str = "", train_auged=None, test_auged=None, inputs: list = None):
         self.args = args
         self.instructions = instructions
+        self.inputs = inputs ## items
         self.labels = labels
         self.negItems = negItems
         self.tokenizer = tokenizer  # , LlamaTokenizer.from_pretrained(self.args.base_model)
@@ -194,12 +198,14 @@ class LLaMaEvaluator:
 
     def prepare_dataloader(self):
         self.tokenizer.padding_side = 'left'
-
-        instructions = [self.prompter.generate_prompt(instruction=instruction) for instruction in self.instructions]
+        if self.args.prompt_w_knowledge is True:
+            instructions = [self.prompter.generate_prompt(instruction=instruction, input=input) for instruction, input in zip(self.instructions, self.inputs)]
+        else: 
+            instructions = [self.prompter.generate_prompt(instruction=instruction) for instruction in self.instructions]
         instruction_dataset = Textdataset(self.args, instructions, self.labels, self.tokenizer, self.test_dataset_pred_aug)
         # instruction_dataset = LLM_RQ_Dataset(self.args, self.test_dataset_pred_aug, self.tokenizer, mode='test', method=self.args.method, template=self.prompter.template)
         dataloader = DataLoader(instruction_dataset, batch_size=self.args.eval_batch_size, shuffle=False)
-
+        mylogger.info(f" Create Test Dataset, Dataloader ")
         return dataloader
 
     def evaluate(self, input_ids, attention_mask, model, input=None, temperature=0.1, top_p=0.75, top_k=40, num_beams = 1, max_new_tokens=50, **kwargs):
@@ -318,6 +324,7 @@ def save_preds(args, contexts, real_resps, gen_resps, types, topics, p_topics):
 def llama_finetune(args, tokenizer, evaluator,
         instructions: list = None,
         labels: list = None,
+        inputs: list = None,
         # model/data params
         base_model: str = "",  # the only required argument
         output_dir: str = "/lora-alpaca",
@@ -433,8 +440,11 @@ def llama_finetune(args, tokenizer, evaluator,
         return tokenized_full_prompt
 
     data = []
-    for inst, lab in zip(instructions, labels):
-        data.append({"instruction": inst, "input": "", "output": lab})
+    if inputs: 
+        data = [{"instruction": inst, "input": inpu, "output": lab} for inst, inpu, lab in zip(instructions, inputs, labels)]
+    else:
+        for inst, lab in zip(instructions, labels):
+            data.append({"instruction": inst, "input": "", "output": lab})
     # pkl
     
     first_sample = Dataset.from_pandas(pd.DataFrame([data[0]]))
@@ -597,7 +607,7 @@ def add_ours_specific_args(parser=None):
     # parser.add_argument('--quiz_merge', type=bool, default=False)
     # parser.add_argument('--origin_augment', type=bool, default=False)
     # parser.add_argument('--all_merge', type=bool, default=False)
-    # parser.add_argument('--plot_merge', type=bool, default=False)
+    parser.add_argument('--prompt_w_knowledge', type=bool, default=False)
     return parser
 
 def initLogging(args):
@@ -647,6 +657,10 @@ def main(args=None):
     args.topic_num, args.goal_num = len(topicDic['int']), len(goalDic['int'])
     args.taskDic = {'goal': goalDic, 'topic': topicDic}
     train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'train_pred_aug_dataset.pkl')) , utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'test_pred_aug_dataset.pkl'))
+    
+    train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.data_dir,'pred_aug', 'know', 'our', "cotmae", f'en_train_know_3711.txt'))
+    test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.data_dir,'pred_aug', 'know', 'our', "cotmae", f'en_test_know_3711.txt'))
+    data_utils.eval_pred_loads(test_dataset_aug_pred, task='know')
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
     
     cache_dir = os.path.join(args.home, 'model_cache', args.base_model)
@@ -654,6 +668,9 @@ def main(args=None):
     
     train_instructions, train_labels = [i['dialog'].replace("[SEP]", "\n") for i in train_dataset_aug_pred], [i['response'].replace("[SEP]", "") for i in train_dataset_aug_pred]
     test_instructions, test_labels = [i['dialog'].replace("[SEP]", "\n") for i in test_dataset_aug_pred], [i['response'].replace("[SEP]", "") for i in test_dataset_aug_pred]
+    
+    train_inputs, test_inputs = [i['predicted_know'][:3] for i in train_dataset_aug_pred],  [i['predicted_know'][:3] for i in test_dataset_aug_pred]
+    if args.prompt_w_knowledge is False: train_inputs, test_inputs = None, None
 
     train_instructions = cutoffInstruction(tokenizer, train_instructions, args.llama_input_maxlen, True)
     test_instructions = cutoffInstruction(tokenizer, test_instructions, args.llama_input_maxlen, True)
@@ -661,12 +678,14 @@ def main(args=None):
     if 'llama' in args.base_model.lower():
         cache_dir = os.path.join(args.home, 'model_cache', args.base_model)
         tokenizer = LlamaTokenizer.from_pretrained(args.base_model, cache_dir = cache_dir)
-        evaluator = LLaMaEvaluator(args=args, tokenizer=tokenizer, instructions=test_instructions, labels=test_labels,
+        evaluator = LLaMaEvaluator(args=args, tokenizer=tokenizer, instructions=test_instructions, labels=test_labels, inputs= test_inputs,
                                    prompt_template_name=args.prompt, train_auged=train_dataset_aug_pred, test_auged=test_dataset_aug_pred)
         if 'train' in args.mode:
+            # if args.prompt_w_knowledge is True:
             llama_finetune(args=args, evaluator=evaluator, tokenizer=tokenizer, instructions=train_instructions,
-                           labels=train_labels, num_epochs=args.epoch, 
-                           prompt_template_name=args.prompt)
+                        labels=train_labels, num_epochs=args.epoch, inputs=train_inputs,
+                        prompt_template_name=args.prompt)
+                
         if 'test' in args.mode:
             # 특정 weight 지정 없이, 모든 epoch 에 해당하는 weights test
             # if args.lora_weights[args.lora_weights.rfind('/') + 1:] != "lora-alpaca" and args.lora_weights[-1].isdigit() is False:
