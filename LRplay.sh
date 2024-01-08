@@ -3,20 +3,27 @@
 
 # --train_on_inputs=False --system_template --do_not_create user's response 
 
-CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_WithKnow_0 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage --prompt_w_knowledge=True
-CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_WithKnow_1 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage --prompt_w_knowledge=True
-CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_WithKnow_2 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage --prompt_w_knowledge=True
+python pseudo_labeler.py --mode=test --how=dialog --gpu=0 --save --score_method=bm25  --log_name=BM25
+
+CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_WithKnow_Token_0 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True
+CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_WithKnow_Token_1 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True
+CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_WithKnow_Token_2 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True
 
 
-CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_With샵샵샵Resp_2 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_WithKnow_0 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage --prompt_w_knowledge=True
+# CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_WithKnow_1 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage --prompt_w_knowledge=True
+# CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_WithKnow_2 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage --prompt_w_knowledge=True
 
-CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_No샵샵샵Resp --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1 
-CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_With샵샵샵Resp --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_With샵샵샵Resp_2 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+
+# CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_No샵샵샵Resp --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1 
+# CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=JW_Lm7bhf_len512_3e4_prompt_With샵샵샵Resp --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
 
 
-CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --log_name=Plz_L7b_chat_len512 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --epoch=7
-CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_system 
-CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt1_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1
+# CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --log_name=Plz_L7b_chat_len512 --epoch=5 --base_model=meta-llama/Llama-2-7b-chat-hf --llama_input_maxlen=512 --epoch=7
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt_System_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_system 
+# CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Lm7bhf_len512_3e4_prompt1_NoSEP --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_1
 
 
 

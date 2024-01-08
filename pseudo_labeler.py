@@ -310,11 +310,12 @@ def make(args, mode, dialogs, start=0, end=0, m=None):
             if goal == 'Food recommendation': response = ' '.join(conversation[:uidx]) + utt
             response = response.replace('℃', ' degrees Celsius')
 
+            if args.how == 'dialog': response = ' '.join(conversation[:uidx]) # + f" {utt}"
+
             response = word_piece_tokenizer.decode(word_piece_tokenizer.encode(response)[1:-1])
             if 'item' in args.how:
                 if prev_topic != topic: response = prev_topic + "|" + topic + "|" + response
                 else: response = topic + "|" + response
-
             if know:
                 know = clean_join_triple(know)
                 tokenized_query = custom_tokenizer(response.lower())
@@ -531,3 +532,5 @@ def main_pseudo_labeled_dataset():
 
 if __name__ == "__main__":
     main_pseudo_labeled_dataset()
+
+# python pseudo_labeler.py --mode=train_dev_test --how=resp_uttr_item --gpu=0 --save --score_method=bm25  --log_name=BM25
