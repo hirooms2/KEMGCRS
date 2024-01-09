@@ -206,12 +206,20 @@ class Args:
 def conv_gen_eval(version='2', model_result='bartbase', when='231229', fixedPath=None):
     import os
     # home, bert_name = '/home/work/CRSTEST/KEMGCRS/', 'bert-base-uncased'
+    from kobert_tokenizer import KoBERTTokenizer
+
+    home, bert_name = os.path.dirname(os.path.realpath(__file__)) , 'bert-base-uncased' if version=='2' else 'skt/kobert-base-v1'
+
+    if version=='2': 
+        tokenizer = AutoTokenizer.from_pretrained(bert_name, cache_dir=os.path.join(home, "model_cache", bert_name))
+        test_dataset= read_pkl('/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl') # Data for true type, topic, knowledges
+    else:
+        tokenizer = KoBERTTokenizer.from_pretrained(bert_name, cache_dir=os.path.join(home, "model_cache", bert_name))
+        raw_data_path = os.path.join(home, 'data', version, 'pred_aug', 'pkl_794','test_pred_aug_dataset.pkl')
+        test_dataset= read_pkl(raw_data_path) # Data for true type, topic, knowledges
+        test_dataset = list(filter(lambda x: x['goal'] != 'Chit-chat' and x['target_knowledge'], test_dataset))
     
-    home, bert_name = os.path.dirname(os.path.realpath(__file__)) , 'bert-base-uncased'
-    tokenizer = AutoTokenizer.from_pretrained(bert_name, cache_dir=os.path.join(home, "model_cache", bert_name))
-    evaluator = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
-    evaluator_knowledgebleu = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
-    test_dataset= read_pkl('/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl') # Data for true type, topic, knowledges
+    
     knowledges3711=[i['target_knowledge'] for i in test_dataset]
     type3711=[i['goal'] for i in test_dataset]
     rep_path = os.path.join(home, 'temp_code', 'hitgen', version, when,model_result) # "/home/work/CRSTEST/KERS_HJ/epoch_output/2/2023-07-23_052257_BKERS_3711Train_3711Test_1e-5_facebook_bart-base/12_test_GEN_REPORT.txt"
@@ -229,6 +237,7 @@ def conv_gen_eval(version='2', model_result='bartbase', when='231229', fixedPath
                 labels.append(line['LABEL'])
                 # line['TARGET_KNOW']
     else:
+        types=type3711
         with open(rep_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         for line in lines:
@@ -243,7 +252,10 @@ def conv_gen_eval(version='2', model_result='bartbase', when='231229', fixedPath
             else: 
                 preds.append(linedic['pred'])
             labels.append(linedic['label'])
-            types.append(linedic['type'])
+            # types.append(linedic['type'])
+    
+    evaluator = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
+    evaluator_knowledgebleu = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=None)
     evaluator.after_eval_report(preds[:], labels[:], types[:])
     evaluator_knowledgebleu.after_eval_report(preds[:], knowledges3711[:], types[:])
     report = evaluator.report()
@@ -326,5 +338,6 @@ if __name__ == '__main__':
 
     # conv_gen_eval(version='2', model_result='bartbase', when='231229')
     # conv_gen_eval(version='2', model_result='kers_base_10', when='231229')
-    conv_gen_eval(version='2', model_result='chatgpt_withPassage.json', when='231229')
+    # conv_gen_eval(version='2', model_result='chatgpt_withPassage.json', when='231229')
+    conv_gen_eval(version='ko', model_result='gpt2base', when='231229')
     pass

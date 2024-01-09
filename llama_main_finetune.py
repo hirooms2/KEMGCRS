@@ -709,7 +709,7 @@ def main(args=None):
                     evaluator.test()
                 else:
                     origin_lora_weights_epochs = args.lora_weights[args.lora_weights.rfind('/') + 1:]
-                    weights_list = sorted(list(filter(lambda x: origin_lora_weights_epochs in x , os.listdir(args.lora_path))), reverse=True)[:-4]
+                    weights_list = sorted(list(filter(lambda x: origin_lora_weights_epochs in x , os.listdir(args.lora_path))), reverse=True)[:-5]
                     # sorted(weights_list)
                     mylogger.info(f"<Weights list>: [{weights_list}]")
                     for e, lora_weight_path in enumerate(weights_list):
