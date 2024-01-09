@@ -608,6 +608,8 @@ def add_ours_specific_args(parser=None):
     # parser.add_argument('--origin_augment', type=bool, default=False)
     # parser.add_argument('--all_merge', type=bool, default=False)
     parser.add_argument('--prompt_w_knowledge', type=bool, default=False)
+    parser.add_argument("--idea", type=str, default='1_2', help="Our Idea 적용 여부 (1: item selector, 2: groupwise loss)")
+    parser.add_argument("--knowledge_method", type=str, default="dpr", help = 'knowledge method: [dpr, contriever, cotmae]')
     return parser
 
 def initLogging(args):
@@ -658,8 +660,11 @@ def main(args=None):
     args.taskDic = {'goal': goalDic, 'topic': topicDic}
     train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'train_pred_aug_dataset.pkl')) , utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'test_pred_aug_dataset.pkl'))
     
-    train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.data_dir,'pred_aug', 'know', 'our', "cotmae", f'en_train_know_3711.txt'))
-    test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.data_dir,'pred_aug', 'know', 'our', "cotmae", f'en_test_know_3711.txt'))
+    mylogger.info(f" Get Knowledge Predicted -- Idea: {args.idea}, Method: {args.knowledge_method}")
+    middle_path = 'our' if ('1' in args.idea and '2' in args.idea) else 'default'
+    if args.idea=='top1': middle_path = 'our/top1'
+    train_dataset_aug_pred = data_utils.read_pred_json_lines(train_dataset_aug_pred, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_train_know_3711.txt'))
+    test_dataset_aug_pred  = data_utils.read_pred_json_lines(test_dataset_aug_pred,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_test_know_3711.txt'))
     data_utils.eval_pred_loads(test_dataset_aug_pred, task='know')
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
     
