@@ -116,6 +116,9 @@ def train_KO_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, 
     our_best_model = Retriever(args, deepcopy(bert_model))
     if args.rag_our_model.upper() == 'C2DPR': # 
         load_model_name = os.path.join(args.saved_model_path, f"GCL2_topic3_conf60_KO_retriever.pt")
+        tokenizer.add_special_tokens({'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>'],})
+        bert_model.resize_token_embeddings(len(tokenizer))
+        our_best_model = Retriever(args, deepcopy(bert_model))
         logger.info(f"@@@@@Load Our C2DPR RAG On Bert : {load_model_name}")
         our_best_model.load_state_dict(torch.load(load_model_name, map_location=args.device), strict=False)
         our_best_model.query_bert.name_or_path, our_best_model.rerank_bert.name_or_path = "skt/c2dpr_query_bert", "skt/c2dpr_rerank_bert"
