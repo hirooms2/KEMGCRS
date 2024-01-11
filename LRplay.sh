@@ -3,10 +3,10 @@
 
 # --train_on_inputs=False --system_template --do_not_create user's response 
 
-# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=1e-4 --log_name=Llama_default_1e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=2e-4 --log_name=Llama_default_2e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=4e-4 --log_name=Llama_default_4e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=5e-4 --log_name=Llama_default_5e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=1e-4 --log_name=Llama_default_1e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=2e-4 --log_name=Llama_default_2e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=4e-4 --log_name=Llama_default_4e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+CUDA_VISIBLE_DEVICES=3 python llama_main_finetune.py --learning_rate=5e-4 --log_name=Llama_default_5e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
 
 
 
@@ -23,6 +23,7 @@
 # CUDA_VISIBLE_DEVICES=3 python llama_main_finetune.py --log_name=llama_Contriever_No --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True --knowledge_method=contriever --idea=0
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=llama_Contriever_No --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True --knowledge_method=contriever --idea=0
 # CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --log_name=llama_Contriever_No --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True --knowledge_method=contriever --idea=0
+CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --log_name=RE_llama_Contriever_No --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=test --prompt=template_w_passage_token --prompt_w_knowledge=True --knowledge_method=contriever --idea=0 --lore_weights=2024-01-09_204945_llama_Contriever_No_llama_log.txt_Epoch
 
 # CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --log_name=llama_CotmaeOUR --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True --knowledge_method=cotmae --idea=1_2
 # CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --log_name=llama_CotmaeOUR --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_w_passage_token --prompt_w_knowledge=True --knowledge_method=cotmae --idea=1_2

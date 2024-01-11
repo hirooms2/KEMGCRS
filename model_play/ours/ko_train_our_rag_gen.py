@@ -111,9 +111,10 @@ def train_KO_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, 
     train_dataset_aug_pred,test_dataset_aug_pred = train_dataset_pred_aug[:], test_dataset_pred_aug[:]
     logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
     if args.debug: train_dataset_aug_pred, test_dataset_aug_pred = train_dataset_aug_pred[:10], test_dataset_aug_pred[:10]
-
+    # tokenizer.add_special_tokens({'additional_special_tokens': ['<dialog>', '<topic>', '<goal>', '<profile>', '<situation>'],})
+    # bert_model.resize_token_embeddings(len(tokenizer))
     our_best_model = Retriever(args, deepcopy(bert_model))
-    if args.rag_our_model.upper() == 'C2DPR':
+    if args.rag_our_model.upper() == 'C2DPR': # 
         load_model_name = os.path.join(args.saved_model_path, f"GCL2_topic3_conf60_KO_retriever.pt")
         logger.info(f"@@@@@Load Our C2DPR RAG On Bert : {load_model_name}")
         our_best_model.load_state_dict(torch.load(load_model_name, map_location=args.device), strict=False)
