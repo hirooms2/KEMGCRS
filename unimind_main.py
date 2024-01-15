@@ -139,10 +139,11 @@ def main(args=None):
     best_ppl, best_outputstr=10000, None
     log_args(args)
     for epoch in range(args.uni_epochs):
-        logger.info(f"Train {epoch} Start")
 
-        generator.train()
-        _, _ = epoch_play(args, tokenizer, generator, train_dataloader, optimizer, scheduler, epoch, mode='train')
+        if not args.debug:
+            logger.info(f"Train {epoch} Start")
+            generator.train()
+            _, _ = epoch_play(args, tokenizer, generator, train_dataloader, optimizer, scheduler, epoch, mode='train')
         
         with torch.no_grad():
             generator.eval()
@@ -163,8 +164,9 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
     torch.cuda.empty_cache()
     skip_tokens= False #True if epoch>1 else False
     contexts, real_resps, gen_resps = [],[],[]
-    topics, p_topics, types, topic_in_resps = [],[],[],[]
+    topics, p_topics, types, topic_in_resps, target_knowledges = [],[],[],[], []
     evaluator = ConvEvaluator(tokenizer=tokenizer)
+    evaluator_know = ConvEvaluator_ByType(tokenizer=tokenizer)
     evaluator_type = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=os.path.join(args.output_dir, f"{epoch}_{mode}_GEN_REPORT.txt") if mode=='test' else None)
     for batch in tqdm(data_loader, desc=f"Epoch {epoch:^2}__{mode:^5}", bar_format=' {l_bar} | {bar:23} {r_bar}'):   
         total_steps += 1
@@ -188,10 +190,11 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
             ## << For Gen_Rec RQ
             evaluator.evaluate(gen_ids, lm_labels, log=True)
             evaluator_type.evaluate(gen_ids, lm_labels, batch_types, log=True)
+            # evaluator_know.evaluate(gen_ids, batch['target_knowledge'], batch_types, log=False, is_text=True)
 
         contexts.extend(tokenizer.batch_decode(source_ids))
         real_resps.extend(tokenizer.batch_decode(lm_labels, skip_special_tokens=skip_tokens, clean_up_tokenization_spaces=skip_tokens)) # , skip_special_tokens=True, clean_up_tokenization_spaces=False
-
+        target_knowledges.extend(batch['target_knowledge'])
         loss.detach()
         epoch_loss+=loss
 
@@ -204,8 +207,8 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
 
     if mode=='test':
         report = evaluator.report()
-        report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
-                        f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
+        report_text = [f"TOTAL_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+                        f"TOTAL_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
         output_strings.extend(report_text)
         evaluator.reset_metric()
 
@@ -213,15 +216,21 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         report_text = [f"NEW_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
                        f"NEW_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
         output_strings.extend(report_text)
-
+        
+        evaluator_know.after_eval_report(gen_resps, target_knowledges, types)
+        report=evaluator_know.report()
+        report_text = [f"KnowledgeBLEU_{epoch}_{mode}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4",
+                       f"KnowledgeBLEU_{epoch}_{mode}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}"]
+        output_strings.extend(report_text)
+        
         report_type = evaluator_type.report_ByType()
         output_strings.append(f"NEW_{epoch}_{mode:^5}_{'each_type':^21}: bleu@1, bleu@2, bleu@3, bleu@4, dist@1, dist@2, dist@3, dist@4, count")
         for each_type, report in report_type.items():
             reports_text = f"NEW_{epoch}_{mode:^5}_{each_type:^21}:  {report['bleu@1']:.3f},  {report['bleu@2']:.3f},  {report['bleu@3']:.3f},  {report['bleu@4']:.3f},  {report['dist@1']:.3f},  {report['dist@2']:.3f},  {report['dist@3']:.3f},  {report['dist@4']:.3f}, Count: {report['sent_cnt']}"
             output_strings.append(reports_text)
 
-        # for i in output_strings:
-        #     logger.info(f"{mode}_{epoch} {i}")
+        for i in output_strings:
+            logger.info(f"{mode}_{epoch} {i}")
         
         _, hitdic_ratio, resp_topic_str = evaluator_type.gen_resp_topic(args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resps, topic_in_resps=topic_in_resps, p_topics=p_topics, isrq=True)
         for i in resp_topic_str:
@@ -314,8 +323,12 @@ class UnimindDataset(Dataset):
                 input = f"{dialog} goal: {predicted_goal} topic: {predicted_topic} Generate the response: "
                 labels = response
         elif self.method=='bart':
-            input = f"{dialog}</s>"
-            labels = self.postfix + f"{response}</s>"
+            if self.args.version=='ko':
+                input = f"{dialog}</s>"
+                labels = self.postfix + f"{response}</s>"
+            else:
+                input = f"{dialog}"
+                labels = f"{response}"
         else: 
             raise Exception("UniMIND Or Bart For This Dataset Model")
 
@@ -339,10 +352,10 @@ class UnimindDataset(Dataset):
         context_batch['response'] = [self.tokenizer.bos_token_id] + labels  # kobart <s> issue
         context_batch['goal_idx'] = self.args.goalDic['str'][goal]  # index로 바꿈
         context_batch['topic_idx'] = self.args.topicDic['str'][topic]  # index로 바꿈
-        
         for k, v in context_batch.items():
             if not isinstance(v, torch.Tensor):
                 context_batch[k] = torch.as_tensor(v, device=self.args.device)
+        context_batch['target_knowledge'] = target_knowledge
         return context_batch
 
 class BART_RQ_Dataset(Dataset):# 20230918_BART-large_RQ

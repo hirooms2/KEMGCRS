@@ -1,7 +1,7 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
-python unimind_main.py --version=2 --gpu=1 --method=bart --uni_lr=1e-5 --uni_model_name='facebook/bart-large' --uni_max_input_length=128 --uni_max_target_length=128 --log_name="BART_Large_37train_37test_1e-5" # BART-Large 다시 돌려보기
+python unimind_main.py --version=2 --gpu=0 --method=bart --uni_lr=1e-5 --uni_model_name='facebook/bart-large' --uni_max_input_length=256 --uni_max_target_length=128 --log_name="BART_Large_37train_37test_1e-5" # BART-Large 다시 돌려보기
 python gpt_main.py --version='2' --log_name='LargeGPT_37_37_1e-5' --gpt_lr=1e-5 --gpu=1 --gpt_batch_size=8 --gpt_model_name=gpt2-large
 
 # --train_on_inputs=False --system_template --do_not_create user's response 
