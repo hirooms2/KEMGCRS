@@ -110,11 +110,11 @@ def main(args=None):
     
     
     logger.info("Pred-Aug dataset 구축")
-    args.rag_train_alltype, args.rag_test_alltype = args.gpt_train_alltype, args.gpt_test_alltype
-    train_dataset_aug_pred, test_dataset_aug_pred = make_aug_gt_pred(args, deepcopy(bert_model), tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
-    logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
-    logger.info(f"!!Dataset created!!\n")
-
+    # args.rag_train_alltype, args.rag_test_alltype = args.gpt_train_alltype, args.gpt_test_alltype
+    # train_dataset_aug_pred, test_dataset_aug_pred = make_aug_gt_pred(args, deepcopy(bert_model), tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+    # logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
+    # logger.info(f"!!Dataset created!!\n")
+    train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'train_pred_aug_dataset.pkl')) , utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'test_pred_aug_dataset.pkl'))
     # train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir,'pred_aug', 'temp','gt_train_pred_aug_dataset.pkl')) ,utils.read_pkl(os.path.join(args.data_dir,'pred_aug', 'temp','gt_test_pred_aug_dataset.pkl'))
     # pred_pkl_stat
 

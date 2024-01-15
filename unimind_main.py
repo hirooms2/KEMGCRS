@@ -14,7 +14,7 @@ import utils
 import data_utils
 import data_model
 from model_play.ours.train_our_rag_retrieve_gen import make_aug_gt_pred
-from evaluator_conv import ConvEvaluator, ConvEvaluator_ByType, gen_resp_topic
+from evaluator_conv import ConvEvaluator, ConvEvaluator_ByType #, gen_resp_topic
 import random
 # from torch.utils.tensorboard import SummaryWriter
 
@@ -26,7 +26,7 @@ def add_ours_specific_args(parser):
     parser.add_argument("--gt_batch_size", type=int, default=16, help=" Method ")
 
     
-    parser.add_argument("--topic_rq", type=str, default='conf', choices=["conf","top"] , help=" Method ")
+    parser.add_argument("--topic_rq", type=str, default='None', choices=["conf","top","None"] , help=" Method ")
     parser.add_argument("--topic_rq_label", type=str, default='resp', choices=["resp","item_resp"] , help=" Method ")
     parser.add_argument("--topic_score", type=str, default='794', help=" pkl folder name (pkl_TOPICSCORE)")
     
@@ -102,9 +102,9 @@ def main(args=None):
         # read_pkl(os.path.join(args.data_dir, 'pred_aug', f'gt_train_pred_aug_dataset.pkl'))
     else:
         logger.info("Pred-Aug dataset 구축")
-        args.rag_train_alltype, args.rag_test_alltype = args.uni_train_alltype, args.uni_test_alltype
-        train_dataset_aug_pred, test_dataset_aug_pred = make_aug_gt_pred(args, deepcopy(bert_model), tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
-
+        # args.rag_train_alltype, args.rag_test_alltype = args.uni_train_alltype, args.uni_test_alltype
+        # train_dataset_aug_pred, test_dataset_aug_pred = make_aug_gt_pred(args, deepcopy(bert_model), tokenizer, train_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB)
+        train_dataset_aug_pred, test_dataset_aug_pred = utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'train_pred_aug_dataset.pkl')) , utils.read_pkl(os.path.join(args.data_dir, 'pred_aug', f'pkl_794', f'test_pred_aug_dataset.pkl'))
     logger.info(f"Length of Pred_Auged Train,Test: {len(train_dataset_aug_pred)}, {len(test_dataset_aug_pred)}")
     logger.info(f"!!Dataset created!!\n")
 
@@ -125,11 +125,12 @@ def main(args=None):
     # 3711-3711 Fast 
     if args.debug: 
         train_dataset_aug_pred, test_dataset_aug_pred, args.uni_epochs = train_dataset_aug_pred[:50] , test_dataset_aug_pred[:50] , 1
-
-    train_Dataset = BART_RQ_Dataset(args, train_dataset_aug_pred, tokenizer, mode='train', method=args.method)
-    test_Dataset =BART_RQ_Dataset(args, test_dataset_aug_pred, tokenizer, mode='test', method=args.method)
-    # train_Dataset = UnimindDataset(args, train_dataset_aug_pred, tokenizer, mode='train', method=args.method)
-    # test_Dataset =UnimindDataset(args, test_dataset_aug_pred, tokenizer, mode='test', method=args.method)
+    if args.topic_rq.lower()=='none':
+        train_Dataset = UnimindDataset(args, train_dataset_aug_pred, tokenizer, mode='train', method=args.method)
+        test_Dataset =UnimindDataset(args, test_dataset_aug_pred, tokenizer, mode='test', method=args.method)
+    else:
+        train_Dataset = BART_RQ_Dataset(args, train_dataset_aug_pred, tokenizer, mode='train', method=args.method)
+        test_Dataset =BART_RQ_Dataset(args, test_dataset_aug_pred, tokenizer, mode='test', method=args.method)
     train_dataloader = DataLoader(train_Dataset, batch_size=args.uni_batch_size, shuffle=True)
     test_dataloader = DataLoader(test_Dataset, batch_size=args.uni_batch_size, shuffle=False)
 
@@ -222,7 +223,7 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         # for i in output_strings:
         #     logger.info(f"{mode}_{epoch} {i}")
         
-        _, hitdic_ratio, resp_topic_str = gen_resp_topic(args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resps, topic_in_resps=topic_in_resps, p_topics=p_topics, isrq=True)
+        _, hitdic_ratio, resp_topic_str = evaluator_type.gen_resp_topic(args, real_resps=real_resps, types=types, topics=topics, gen_resps=gen_resps, topic_in_resps=topic_in_resps, p_topics=p_topics, isrq=True)
         for i in resp_topic_str:
             logger.info(f"{mode}_{epoch} {i}")
         ppl= 1 - hitdic_ratio['total']['hit1_Gen']
@@ -287,7 +288,7 @@ class UnimindDataset(Dataset):
         self.input_max_length=args.uni_max_input_length
         self.target_max_length=args.uni_max_target_length
         self.tokenizer.truncation_side='left'
-        self.postfix = "system: "
+        self.postfix = "System: "
         ## pipeline 고려하기 (predicted_goal, predicted_topic)
 
 
@@ -393,9 +394,12 @@ class BART_RQ_Dataset(Dataset):# 20230918_BART-large_RQ
             if self.mode == 'train':
                 random.shuffle(predicted_topic_list)
             predicted_goal, predicted_topics = data['predicted_goal'][0], '|'.join(predicted_topic_list)
-        else: raise Exception("Topic RQ should 'conf' or 'top'")
+        # else: raise Exception("Topic RQ should 'conf' or 'top'")
 
-        prefix, prompt = f"<topic>{predicted_topics} <dialog>", ' | Generate the response:'
+        if self.topic_rq.lower()=='none':
+            prefix, prompt = f"<dialog>", ' | Generate the response:'
+        else:
+            prefix, prompt = f"<topic>{predicted_topics} <dialog>", ' | Generate the response:'
 
         if 't5' in self.args.uni_model_name: 
             input_sentence = self.tokenizer(dialog + prompt).input_ids
