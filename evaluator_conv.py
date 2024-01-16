@@ -337,7 +337,7 @@ if __name__ == '__main__':
     import json
 
     # conv_gen_eval(version='2', model_result='bartbase', when='231229')
-    # conv_gen_eval(version='2', model_result='kers_base_10', when='231229')
+    conv_gen_eval(version='2', model_result='gpt2large_142', when='231229')
     # conv_gen_eval(version='2', model_result='chatgpt_withPassage.json', when='231229')
-    conv_gen_eval(version='ko', model_result='gpt2base', when='231229')
+    # conv_gen_eval(version='ko', model_result='gpt2base', when='231229')
     pass

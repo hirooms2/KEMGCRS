@@ -250,7 +250,7 @@ def save_preds_hitgen(args, context, real_resp, gen_resps=[], epoch=None, mode='
         f.write(f"{mode}, Epoch: {str(epoch)} Input and Output results {args.time}\n")
         f.write(f"Log File Name: {args.log_name} \n\n\n")
         for i, ctx in enumerate(context):
-            if i == 2000: break
+            # if i == 2000: break
             if topic_in_resp:
                 if topic_in_resp[i]:
                     isTrue = True if topics[i] in gen_resps[i] else False
