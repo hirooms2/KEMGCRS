@@ -6,6 +6,9 @@ from transformers import AutoTokenizer
 from utils import read_pkl
 import warnings
 from tqdm import tqdm
+from data_utils import read_pred_json_lines
+import os 
+
 warnings.filterwarnings('ignore')
 class ConvEvaluator:
     def __init__(self, tokenizer, log_file_path=None):
@@ -333,11 +336,48 @@ def know_hit_ratio(args, pred_pt, gold_pt, new_knows=None, types=None, typelist=
         # output_str.append(f"{key:^22}: {hitdic_ratio[key]['hit1']:.3f}\t{hitdic_ratio[key]['hit3']:.3f}\t{hitdic_ratio[key]['hit5']:.3f}\t{hitdic_ratio[key]['hit10']:.3f}\t{hitdic_ratio[key]['hit1_new']:.3f}\t{hitdic_ratio[key]['hit3_new']:.3f}\t{hitdic_ratio[key]['hit5_new']:.3f}\t{hitdic_ratio[key]['hit10_new']:.3f}\t{hitdic_ratio[key]['total']}")
     return hitdic, hitdic_ratio, output_str
 
+def pred_know_check(know_path):
+    temp = read_pkl('/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl')
+    temp = read_pred_json_lines(temp, know_path) 
+    print(len(list(filter(lambda x: x['predicted_know'][0]==x['target_knowledge'] , temp))) / len(temp), len(list(filter(lambda x: x['target_knowledge'] in x['predicted_know'][:3] , temp))) / len(temp), len(list(filter(lambda x: x['target_knowledge'] in x['predicted_know'][:5] , temp))) / len(temp) )
+
+def print_save_pred_dialog(pkl_path):
+    test_samples = read_pkl('/home/work/CRSTEST/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl')
+    pred_samples = read_pkl(pkl_path)
+    with open(os.path.join(os.path.dirname(__file__), "output", 'know_pred_output', f"OUTPUT_{pkl_path.split('/')[-2]}.txt"), 'w', encoding='utf-8') as f, open(os.path.join(os.path.dirname(__file__), "output", 'know_pred_output', f"OUTPUT_{pkl_path.split('/')[-2]}.json"), 'w', encoding='utf-8') as j:
+        f.write(f"Hit@1: {len(list(filter(lambda x: x['predict5'][0]==x['target'].lower() , pred_samples))) / len(pred_samples)}, Hit@3: {len(list(filter(lambda x: x['target'].lower() in x['predict5'][:3] , pred_samples))) / len(pred_samples)}, Hit@5: {len(list(filter(lambda x: x['target'].lower() in x['predict5'][:5] , pred_samples))) / len(pred_samples) }\n")
+        for samples, preds in zip(test_samples, pred_samples):
+            dialog = samples['dialog']
+            source_input=preds['dialog']
+            g_goal, g_topic, g_know = samples['goal'], samples['topic'], samples['target_knowledge']
+            cand_topics = preds['candidate_topic_entities']
+            pred_know5 = preds['predict5']
+            f.write(f"Gold Goal: {g_goal}, Gold_Topic: {g_topic}\n")
+            f.write(f"Target_knowledge: {g_know}\n")
+            f.write(f"Source_Input: {source_input}\n")
+            f.write(f"Candidate_Items: {' | '.join(cand_topics)}\n")
+            for i in pred_know5:
+                f.write(f"Pred knowledge: {i}\n")
+            f.write("\n\n")
+        json.dump(pred_samples, j, ensure_ascii=False, indent=2)
+    # with open(os.path.join(os.path.dirname(__file__), "output", 'know_pred_output', f"OUTPUT_{pkl_path.split('/')[-2]}.json"), 'r', encoding='utf-8') as j:
+    #     loaded_json = json.load(j)
+            # {"source_input": preds['dialog'],
+            #  "g_topic": g_topic,
+            #  "target_knowledge": g_know,
+            #  "cand_topics":cand_topics,
+            #  "predicted_knowledges":pred_know5,
+            #  "pseudo_knowledges": samples['candidate_knowledges']
+            #  }
+
+
+
 if __name__ == '__main__':
     import json
 
     # conv_gen_eval(version='2', model_result='bartbase', when='231229')
-    conv_gen_eval(version='2', model_result='gpt2large_142', when='231229')
+    # conv_gen_eval(version='2', model_result='gpt2large_142', when='231229')
     # conv_gen_eval(version='2', model_result='chatgpt_withPassage.json', when='231229')
     # conv_gen_eval(version='ko', model_result='gpt2base', when='231229')
+    print_save_pred_dialog("/home/work/CRSTEST/KEMGCRS/output/2/ours/2023-12-17_042601_794RG_T3Conf30_Psd_bm25/best_model_best_setting.pkl")
     pass
