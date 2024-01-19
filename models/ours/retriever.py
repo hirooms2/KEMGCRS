@@ -89,7 +89,7 @@ class Retriever(nn.Module):
         knowledge_index = knowledge_index.view(batch_size, -1, dialog_emb.size(-1))  # [B, K, d]
 
         knowledge_index_pos = knowledge_index[:, :self.args.pseudo_pos_num, :]  # [B, 1, d]
-        knowledge_index_neg = knowledge_index[:, self.args.pseudo_pos_num:, :]  # [B, N, d]
+        knowledge_index_neg = knowledge_index[:, self.args.pseudo_pos_num:, :]  # [B, N, d] # # in-batch negative 
         knowledge_index_neg = knowledge_index_neg.reshape(-1, self.hidden_size)
 
         logit_pos = torch.sum(dialog_emb.unsqueeze(1) * knowledge_index_pos, dim=2)  # [B, 1, d] * [B, K, d] = [B, K]
