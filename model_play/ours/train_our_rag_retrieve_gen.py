@@ -242,7 +242,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.lr_dc_step, gamma=args.lr_dc)
     best_hitdic_ratio = {'total': {'hit1': 0, 'hit3': 0, 'hit5': 0, 'hit1_new': 0, 'hit3_new': 0, 'hit5_new': 0, 'total': 0}}
     # best_hitdic_ratio = {'bleu@2':0}
-    best_hitdic_ratio, best_bleu_dic, hitdic_str, bleu_str, hitgen_str=None, {'bleu@2':0}, "","",""
+    best_bleu_dic, hitdic_str, bleu_str, hitgen_str= {'bleu@2':0}, "","",""
     best_hitdic_str = ""
     logger.info(f"Logging Epoch results:                      hit@1, hit@3, hit@5, hit_new@1, hit_new@3, hit_new@5")
     for epoch in range(args.rag_epochs):
