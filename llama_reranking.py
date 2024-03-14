@@ -311,6 +311,7 @@ def llama_finetune(
             ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
             report_to="wandb" if use_wandb else None,
+            dataloader_num_workers=0
             # run_name=args.wandb_run_name if use_wandb else None,
         ),
         data_collator=transformers.DataCollatorForSeq2Seq(
