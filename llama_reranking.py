@@ -341,11 +341,11 @@ def llama_finetune(
 
 def load_dataset():
     print('LLAMA_DATASET')
-    train_file_path = 'data/2/pred_aug/train_pred_aug_dataset_know.pkl'
+    train_file_path = 'data/2/pred_aug/pkl_794/train_pred_aug_dataset_know.pkl'
     with open(file=train_file_path, mode='rb') as f:
         train_dataset = pickle.load(f)
 
-    test_file_path = 'data/2/pred_aug/test_pred_aug_dataset_know.pkl'
+    test_file_path = 'data/2/pred_aug/pkl_794/test_pred_aug_dataset_know.pkl'
     with open(file=test_file_path, mode='rb') as f:
         test_dataset = pickle.load(f)
     return train_dataset, test_dataset
