@@ -15,7 +15,7 @@ from tqdm import tqdm
 from transformers import Trainer, TrainingArguments, TrainerState, TrainerControl
 import wandb
 from peft import PeftModel
-from peft import IA3Config
+# from peft import IA3Config
 
 """
 Unused imports:
