@@ -368,7 +368,7 @@ def parse_args():
     parser.add_argument('--access_token', type=str, default="")
     parser.add_argument('--cnt', type=int, default=0)
     parser.add_argument('--log_name', type=str, default="")
-    parser.add_argument('--debug', type=bool, default=True)
+    parser.add_argument('--debug', type=bool, default=False)
     parser.add_argument('--peft', type=str, default="lora")
     parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--cutoff', type=int, default=256)
