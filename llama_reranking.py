@@ -52,7 +52,7 @@ class QueryEvalCallback(TrainerCallback):
     def on_epoch_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
         model = kwargs['model']
         epoch = state.epoch
-        file_path = os.path.join(args.home, 'model_save_llm')
+        file_path = os.path.join('', 'model_save_llm')
         if not os.path.exists(file_path): os.mkdir(file_path)
         path = os.path.join(file_path, self.log_name + '_E' + str(int(epoch)))
         if not os.path.isdir(path):
