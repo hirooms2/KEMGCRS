@@ -1,20 +1,42 @@
 #!/bin/bash
 # 아래에 실행시키려는 녀석들 다 입력해놓고, 마지막 echo "" 따옴표 안에 어떤걸 보기위한 실험이었는지 적어놓기
 
-python unimind_main.py --version=2 --gpu=0 --method=unimind --uni_lr=1e-5 --uni_epochs=7 --uni_model_name='facebook/bart-large' --uni_max_input_length=256 --uni_max_target_length=128 --uni_batch_size=16 --log_name="RESP_794Uni_Large_PaperDefaultSetting" 
-python unimind_main.py --version=2 --gpu=1 --method=unimind --uni_lr=1e-5 --uni_epochs=7 --uni_model_name='facebook/bart-base' --uni_max_input_length=256 --uni_max_target_length=128 --uni_batch_size=16 --log_name="RESP_794Uni_Base_PaperDefaultSetting" 
 
-python unimind_main.py --version=2 --gpu=0 --method=bart --uni_lr=1e-5 --uni_model_name='facebook/bart-large' --uni_max_input_length=256 --uni_max_target_length=128 --log_name="BART_Large_37train_37test_1e-5" # BART-Large 다시 돌려보기
-python gpt_main.py --version='2' --log_name='LargeGPT_37_37_1e-5' --gpt_lr=1e-5 --gpu=1 --gpt_batch_size=8 --gpt_model_name=gpt2-large
+# 240312 실험 세팅 JP
 
-# --train_on_inputs=False --system_template --do_not_create user's response 
-CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=1e-5 --log_name=Llama_default_1e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=2e-5 --log_name=Llama_default_2e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-5 --log_name=Llama_default_3e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-CUDA_VISIBLE_DEVICES=3 python llama_main_finetune.py --learning_rate=4e-5 --log_name=Llama_default_4e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=5e-5 --log_name=Llama_default_5e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Llama_default_3e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
-CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Llama_default_3e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=test --prompt=template_origin  --lora_weights=2024-01-11_185221_Llama_default_3e-4_llama_log.txt_Epoch
+### top-n item을 골라 이에 대한 passaeg를 retrieve
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25 --model_name=CotMAE_RG_Psd_BM25 --topk_topic=2 --topic_conf=0.7 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25_top --model_name=CotMAE_RG_Psd_BM25_top --topk_topic=2 --topic_conf=1 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25_top --model_name=CotMAE_RG_Psd_BM25_top --topk_topic=1 --topic_conf=1 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
+
+### Pred-K로 pred augmented data 생성
+python main.py --task=pred_k --model_name=CotMAE_RG_Psd_BM25_know_top_2 --train_ablation=RG --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+python main.py --task=pred_k --model_name=CotMAE_RG_Psd_BM25_top_know_top_2 --train_ablation=RG --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+python main.py --task=pred_k --model_name=CotMAE_RG_Psd_BM25_top_know_top_1 --train_ablation=RG --topk_topic=1 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+
+
+### Retrieved passage의 결과를 바탕으로 response를 생성
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_RG_Psd_BM25_know_top_2_resp --model_name=CotMAE_RG_Psd_BM25_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_RG_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_RG_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_RG_Psd_BM25_know_top_top_2_resp --model_name=CotMAE_RG_Psd_BM25_top_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+
+
+
+
+# python unimind_main.py --version=2 --gpu=0 --method=unimind --uni_lr=1e-5 --uni_epochs=7 --uni_model_name='facebook/bart-large' --uni_max_input_length=256 --uni_max_target_length=128 --uni_batch_size=16 --log_name="RESP_794Uni_Large_PaperDefaultSetting" 
+# python unimind_main.py --version=2 --gpu=1 --method=unimind --uni_lr=1e-5 --uni_epochs=7 --uni_model_name='facebook/bart-base' --uni_max_input_length=256 --uni_max_target_length=128 --uni_batch_size=16 --log_name="RESP_794Uni_Base_PaperDefaultSetting" 
+
+# python unimind_main.py --version=2 --gpu=0 --method=bart --uni_lr=1e-5 --uni_model_name='facebook/bart-large' --uni_max_input_length=256 --uni_max_target_length=128 --log_name="BART_Large_37train_37test_1e-5" # BART-Large 다시 돌려보기
+# python gpt_main.py --version='2' --log_name='LargeGPT_37_37_1e-5' --gpt_lr=1e-5 --gpu=1 --gpt_batch_size=8 --gpt_model_name=gpt2-large
+
+# # --train_on_inputs=False --system_template --do_not_create user's response 
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=1e-5 --log_name=Llama_default_1e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+# CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=2e-5 --log_name=Llama_default_2e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+# CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-5 --log_name=Llama_default_3e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+# CUDA_VISIBLE_DEVICES=3 python llama_main_finetune.py --learning_rate=4e-5 --log_name=Llama_default_4e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+# CUDA_VISIBLE_DEVICES=0 python llama_main_finetune.py --learning_rate=5e-5 --log_name=Llama_default_5e-5 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+# CUDA_VISIBLE_DEVICES=2 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Llama_default_3e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=train_test --prompt=template_origin 
+# CUDA_VISIBLE_DEVICES=1 python llama_main_finetune.py --learning_rate=3e-4 --log_name=Llama_default_3e-4 --llama_input_maxlen=512 --epoch=7 --base_model=meta-llama/Llama-2-7b-chat-hf --mode=test --prompt=template_origin  --lora_weights=2024-01-11_185221_Llama_default_3e-4_llama_log.txt_Epoch
 
 
 

@@ -89,8 +89,9 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
 
     retriever = Retriever(args, bert_model)
     logger.info(f"Knowledge Method: {args.knowledge_method}, Model name: {args.model_name} , Topic_Conf: {args.topic_conf} Topic_Top-K: {args.topk_topic}")
-    retriever.load_state_dict(torch.load(f"{args.saved_model_path}/{args.model_name}_know.pt", map_location='cuda:0'), strict=False)
-    logger.info(f"Loaded model: {args.saved_model_path}/{args.model_name}_know.pt")
+    retriever.load_state_dict(torch.load(os.path.join(args.saved_model_path,'save','our' if args.idea else 'default', args.knowledge_method,f"{args.model_name}.pt"), map_location=args.device), strict=False)
+    # retriever.load_state_dict(torch.load(f"{args.saved_model_path}/{args.model_name}_know.pt", map_location='cuda:0'), strict=False)
+    logger.info(f"Loaded model: {args.saved_model_path}/{args.knowledge_method}/{args.model_name}.pt")
 
     with torch.no_grad():
         retriever.to(args.device)
