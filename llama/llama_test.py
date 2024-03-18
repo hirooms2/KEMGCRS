@@ -4,7 +4,7 @@ import sys
 
 import numpy as np
 import torch
-import wandb
+# import wandb
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import GenerationConfig, LlamaForCausalLM, LlamaTokenizer
@@ -183,26 +183,25 @@ class LLaMaEvaluator:
             # print("Response:", response)
             # print("#################################################")
             # generated_results.extend(responses)
-            for dialog, response, label in zip(batch[0], responses, labels):
-                generated_results.append(
-                    {'CONTEXT': dialog, 'GEN': output, 'ANSWER': label, 'HIT': label.lower() in output.lower(),
-                     'AVG_HIT': ', '.join(topk_results), 'NEW_ITEM': idx in self.new_idx})
-                idx += 1
-
-            # mentioned_hit_ratio = mentioned_hit / mentioned_cnt
-            # not_mentioned_hit_ratio = not_mentioned_hit / not_mentioned_cnt
-
-            if self.args.write:
-                for i in generated_results:
-                    self.args.log_file.write(json.dumps(i, ensure_ascii=False) + '\n')
-
-            if cnt % 100 == 0 and cnt != 0:
-                wandb.log({"hit_ratio": (hit / cnt)})
-                print("%.4f" % (hit / cnt))
-
-        self.args.score_file.write('Overall\n')
-        self.args.score_file.write('%.4f\n' % (
-            hit_ratio))
+        #     for dialog, response, label in zip(batch[0], responses, labels):
+        #         generated_results.append(
+        #             {'CONTEXT': dialog, 'GEN': output, 'ANSWER': label, 'HIT': label.lower() in output.lower(),
+        #              'AVG_HIT': ', '.join(topk_results), 'NEW_ITEM': idx in self.new_idx})
+        #         idx += 1
+        #
+        #     # mentioned_hit_ratio = mentioned_hit / mentioned_cnt
+        #     # not_mentioned_hit_ratio = not_mentioned_hit / not_mentioned_cnt
+        #
+        #     if self.args.write:
+        #         for i in generated_results:
+        #             self.args.log_file.write(json.dumps(i, ensure_ascii=False) + '\n')
+        #
+        #     if cnt % 100 == 0 and cnt != 0:
+        #         wandb.log({"hit_ratio": (hit / cnt)})
+        #         print("%.4f" % (hit / cnt))
+        #
+        # self.args.score_file.write('Overall\n')
+        # self.args.score_file.write('%.4f\n' % (hit_ratio))
     # return generated_results
 
 # if __name__ == "__main__":
