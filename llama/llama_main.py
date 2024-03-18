@@ -2,9 +2,9 @@ import os
 
 from transformers import LlamaTokenizer
 
-from llama.llama_test import LLaMaEvaluator
-from llama.llama_train import llama_finetune
-from llama.llama_util import parse_args, dir_init, createLogFile, load_dataset, prepare_dataset, cutoffInstruction
+from llama_test import LLaMaEvaluator
+from llama_train import llama_finetune
+from llama_util import parse_args, dir_init, createLogFile, load_dataset, prepare_dataset, cutoffInstruction
 
 if __name__ == "__main__":
     # fire.Fire(llama_finetune)

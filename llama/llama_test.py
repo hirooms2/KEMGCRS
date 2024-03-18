@@ -10,7 +10,7 @@ from tqdm import tqdm
 from transformers import GenerationConfig, LlamaForCausalLM, LlamaTokenizer
 from peft import PeftModel
 
-from llama.llama_util import Prompter
+from llama_util import Prompter
 
 if torch.cuda.is_available():
     device = "cuda"
