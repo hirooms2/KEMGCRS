@@ -1,20 +1,24 @@
 import argparse
+import json
 import math
 import os
 import pickle
 import sys
 from datetime import datetime
 from typing import List
+
+import numpy as np
 import pandas as pd
 import torch
 import transformers
-from datasets import load_dataset, Dataset
+from datasets import Dataset
 from loguru import logger
 from pytz import timezone
 from tqdm import tqdm
 from transformers import Trainer, TrainingArguments, TrainerState, TrainerControl
 import wandb
 from peft import PeftModel
+
 # from peft import IA3Config
 
 """
@@ -30,20 +34,10 @@ from peft import (
     prepare_model_for_int8_training,
     set_peft_model_state_dict,
 )
-from transformers import LlamaForCausalLM, LlamaTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, TrainerCallback
+from transformers import LlamaForCausalLM, LlamaTokenizer, BitsAndBytesConfig, TrainerCallback
 
-from prompter import Prompter
+from llama_util import Prompter, parse_args, dir_init, createLogFile, prepare_dataset, cutoffInstruction, load_dataset
 
-
-# class CustomTrainer(Trainer):
-#     def compute_metrics(self, eval_pred):
-#         print(eval_pred)
-#         # predictions, labels = eval_pred
-#         # predictions = np.argmax(predictions, axis=-1)  # 클래스 ID로 변환
-#         #
-#         # # 디코딩 및 사용자 정의 평가 메트릭 계산 코드 작성
-#         # # 여기에서는 예시로 정확도만 계산했지만, 여러분이 원하는 어떤 평가 메트릭도 추가할 수 있습니다.
-#         # return {'accuracy': accuracy_score(labels, predictions)}
 
 class QueryEvalCallback(TrainerCallback):
     def __init__(self, args):
@@ -337,113 +331,3 @@ def llama_finetune(
     print(
         "\n If there's a warning about missing keys above, please disregard :)"
     )
-
-
-def load_dataset():
-    print('LLAMA_DATASET')
-    train_file_path = os.path.join(args.home, 'data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl')
-    with open(file=train_file_path, mode='rb') as f:
-        train_dataset = pickle.load(f)
-
-    test_file_path = os.path.join(args.home, 'data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl')
-    with open(file=test_file_path, mode='rb') as f:
-        test_dataset = pickle.load(f)
-    return train_dataset, test_dataset
-
-
-def prepare_dataset(dataset):
-    instructions = []
-    labels = []
-    for data in dataset:
-        instruction = data['dialog'].replace('[SEP]', '\n')
-        label = data['candidate_knowledges'][0]
-        instructions.append(instruction)
-        labels.append(label)
-
-    return instructions, labels
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--access_token', type=str, default="")
-    parser.add_argument('--cnt', type=int, default=0)
-    parser.add_argument('--log_name', type=str, default="")
-    parser.add_argument('--debug', type=bool, default=False)
-    parser.add_argument('--peft', type=str, default="lora")
-    parser.add_argument('--batch_size', type=int, default=2)
-    parser.add_argument('--cutoff', type=int, default=256)
-    parser.add_argument('--epoch', type=int, default=5)
-    parser.add_argument('--learning_rate', type=float, default=3e-4)
-    parser.add_argument('--base_model', type=str, default='meta-llama/Llama-2-7b-chat-hf')
-    parser.add_argument('--resume_from_checkpoint', type=str, default='')
-    parser.add_argument('--prompt_template_name', type=str, default='D2P')
-
-    args = parser.parse_args()
-    args.num_device = torch.cuda.device_count()
-
-    return args
-
-
-def dir_init(default_args):
-    from copy import deepcopy
-    """ args 받은다음, device, Home directory, data_dir, log_dir, output_dir, 들 지정하고, Path들 체크해서  """
-    args = deepcopy(default_args)
-    from platform import system as sysChecker
-    if sysChecker() == 'Linux':
-        args.home = os.path.dirname(os.path.dirname(__file__))
-    elif sysChecker() == "Windows":
-        args.home = ''
-        # args.batch_size, args.num_epochs = 4, 2
-        # args.debug = True
-        pass  # HJ local
-    else:
-        raise Exception("Check Your Platform Setting (Linux-Server or Windows)")
-
-    return args
-
-
-def createLogFile(args):
-    mdhm = str(datetime.now(timezone('Asia/Seoul')).strftime('%m%d%H%M%S'))
-    if args.log_name == '':
-        log_name = mdhm + '_' + 'llama_result.json'
-    else:
-        log_name = args.log_name
-
-    log_file = open(os.path.join(log_name), 'a', buffering=1, encoding='UTF-8')
-    args.log_file = log_file
-    return args
-
-
-def cutoffInstruction(tokenizer, instructions, length, reverse=False):
-    new_instructions = []
-    for data in tqdm(instructions):
-        if reverse:
-            data = tokenizer.decode(tokenizer(data).input_ids[1:][-length:])
-        else:
-            data = tokenizer.decode(tokenizer(data).input_ids[1:][:length])
-        new_instructions.append(data)
-    logger.info('[Finish Cutting-off the instructions]')
-    return new_instructions
-
-
-if __name__ == "__main__":
-    # fire.Fire(llama_finetune)
-    args = parse_args()
-    args = dir_init(args)
-    args = createLogFile(args)
-
-    train_dataset, test_dataset = load_dataset()
-    train_instructions, train_labels = prepare_dataset(train_dataset)
-    test_instructions, test_labels = prepare_dataset(test_dataset)
-
-    if args.debug:
-        train_instructions = train_instructions[:100]
-        train_labels = train_labels[:100]
-        test_instructions = test_instructions[:100]
-        test_labels = test_labels[:100]
-
-    tokenizer = LlamaTokenizer.from_pretrained(args.base_model)
-    train_instructions = cutoffInstruction(tokenizer, train_instructions, args.cutoff, reverse=True)
-    test_instructions = cutoffInstruction(tokenizer, test_instructions, args.cutoff, reverse=True)
-
-    llama_finetune(args, tokenizer=tokenizer, instructions=train_instructions, labels=train_labels, num_epochs=args.epoch)
