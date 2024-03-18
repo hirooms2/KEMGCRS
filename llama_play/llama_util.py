@@ -62,11 +62,11 @@ class Prompter(object):
 
 def load_dataset(args):
     print('LLAMA_DATASET')
-    train_file_path = os.path.join(args.home, '../data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl')
+    train_file_path = os.path.join(args.home, 'data/2/pred_aug/pkl_794/train_pred_aug_dataset.pkl')
     with open(file=train_file_path, mode='rb') as f:
         train_dataset = pickle.load(f)
 
-    test_file_path = os.path.join(args.home, '../data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl')
+    test_file_path = os.path.join(args.home, 'data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl')
     with open(file=test_file_path, mode='rb') as f:
         test_dataset = pickle.load(f)
     return train_dataset, test_dataset
