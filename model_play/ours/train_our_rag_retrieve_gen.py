@@ -89,8 +89,15 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     logger.info(f" Get Pseudo Label {args.pseudo_labeler.upper()}")
     middle_path = 'our' if ('1' in args.idea and '2' in args.idea) else 'default'
     if args.idea=='top1': middle_path = 'our/top1'
-    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_train_know_3711.txt'))
-    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_test_know_3711.txt'))
+    
+    # 0.523 setting (ESPRESSO - Best setting) // 240315 JP
+    # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_train_know_3711.txt'))
+    # test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_test_know_3711.txt'))
+    
+    # item select 수에 따른 pred_aug 데이터셋 통제 // 240315 JP
+    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_train_know_3711.txt'))
+    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_test_know_3711.txt'))
+    
     # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     data_utils.eval_pred_loads(test_dataset_pred_aug, task='know')
@@ -298,11 +305,12 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
     contexts, label_gold_knowledges, label_pseudo_knowledges, top5_docs, real_resps, gen_resp, new_knows = [], [], [], [], [], [], []
     types = []
     evaluatortype = ConvEvaluator_ByType(tokenizer=tokenizer, log_file_path=os.path.join(args.output_dir, f"{epoch}_{mode}_GEN_REPORT_TYPE.txt") if mode == 'test' else None)
+    n_docs = args.rag_n_docs
 
     for batch in tqdm(data_loader, desc=f"Epoch {epoch}__{mode}", bar_format=' {l_bar} | {bar:23} {r_bar}'):
         source_ids, source_mask, target_ids = batch["input_ids"].to(args.device), batch["attention_mask"].to(args.device), batch["response"].to(args.device)
         outputs = model(input_ids=source_ids, attention_mask=source_mask, labels=target_ids,  #
-                        output_retrieved=True, n_docs=5, )
+                        output_retrieved=True, n_docs=n_docs, )
         retrieved_docs_pt = outputs.retrieved_doc_ids.data
 
         loss = outputs['loss'].mean()
@@ -324,7 +332,7 @@ def epoch_play(args, tokenizer, model, data_loader, optimizer, scheduler, epoch,
         types.extend(batch_types)
 
         if mode == 'test':
-            gen_ids = model.generate(source_ids, min_length=0, max_length=args.rag_max_target_length, early_stopping=True, num_beams=1, num_return_sequences=1, n_docs=5)
+            gen_ids = model.generate(source_ids, min_length=0, max_length=args.rag_max_target_length, early_stopping=True, num_beams=1, num_return_sequences=1, n_docs=n_docs)
             resp_batch = tokenizer.generator.batch_decode(gen_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
             gen_resp.extend(resp_batch)
             evaluatortype.evaluate(gen_ids, target_ids, batch_types, log=True)
