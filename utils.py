@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 
-def set_seed(seed=76):
+def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -92,6 +92,8 @@ def save_json(args, filename, saved_jsonlines):
 
 def default_parser(parser):
     # Default For All
+    parser.add_argument("--seed", type=int, default=43, choices=[42, 76, 94])
+
     parser.add_argument("--earlystop", action='store_true', help="Whether to Use EarlyStopping.")
     parser.add_argument("--task", default='know', type=str, help="Choose the task")
     parser.add_argument("--subtask", default='topic', type=str, help="Choose the task")

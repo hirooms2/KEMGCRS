@@ -4,17 +4,29 @@
 
 # 240312 실험 세팅 JP
 
-### top-n item을 골라 이에 대한 passaeg를 retrieve
+### top-n item을 골라 이에 대한 passage를 retrieve (RGL - relevance groupwise learning)
 # python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25 --model_name=CotMAE_RG_Psd_BM25 --topk_topic=2 --topic_conf=0.7 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
 # python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25_top --model_name=CotMAE_RG_Psd_BM25_top --topk_topic=2 --topic_conf=1 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
 # python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25_top --model_name=CotMAE_RG_Psd_BM25_top --topk_topic=1 --topic_conf=1 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
 
-### Pred-K로 pred augmented data 생성
+### top-n item을 골라 이에 대한 passage를 retrive (CL)
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_Psd_BM25 --model_name=CotMAE_CL_Psd_BM25 --topk_topic=2 --topic_conf=0.7 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_Psd_BM25_top --model_name=CotMAE_CL_Psd_BM25_top --topk_topic=2 --topic_conf=1 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
+# python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_Psd_BM25_top --model_name=CotMAE_CL_Psd_BM25_top --topk_topic=1 --topic_conf=1 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
+
+### Pred-K로 pred augmented data 생성 (RGL)
 # python main.py --task=pred_k --model_name=CotMAE_RG_Psd_BM25_know_top_2 --train_ablation=RG --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
 # python main.py --task=pred_k --model_name=CotMAE_RG_Psd_BM25_top_know_top_2 --train_ablation=RG --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
 # python main.py --task=pred_k --model_name=CotMAE_RG_Psd_BM25_top_know_top_1 --train_ablation=RG --topk_topic=1 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=1
 
 
+### Pred-K로 pred augmented data 생성 (CL)
+# python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_know_top_2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+# python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_top_know_top_2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_top_know_top_1 --train_ablation=CL --topk_topic=1 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=1
+
+
+## RGL
 ### Retrieved passage의 결과를 바탕으로 response를 생성 (n_docs=5, default)
 # python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_RG_Psd_BM25_know_top_2_resp --model_name=CotMAE_RG_Psd_BM25_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
 # python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_RG_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_RG_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
@@ -33,8 +45,31 @@ python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epo
 
 ### Retrieved passage의 수에 따른 response 정확도 확인 (n_docs=3)
 # python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=3 --log_name=794_CotMAE_RG_Psd_BM25_know_top_2_resp --model_name=CotMAE_RG_Psd_BM25_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
-# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=3--log_name=794_CotMAE_RG_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_RG_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=3 --log_name=794_CotMAE_RG_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_RG_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
 # python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=3 --log_name=794_CotMAE_RG_Psd_BM25_know_top_top_2_resp --model_name=CotMAE_RG_Psd_BM25_top_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+
+
+## CL
+### Retrieved passage의 결과를 바탕으로 response를 생성 (n_docs=5, default)
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_CL_Psd_BM25_know_top_2_resp --model_name=CotMAE_CL_Psd_BM25_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_2_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+
+
+### Retrieved passage의 수에 따른 response 정확도 확인 (n_docs=1)
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=1 --log_name=794_CotMAE_CL_Psd_BM25_know_top_2_resp --model_name=CotMAE_CL_Psd_BM25_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=1 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=1 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_2_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+
+### Retrieved passage의 수에 따른 response 정확도 확인 (n_docs=2)
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=2 --log_name=794_CotMAE_CL_Psd_BM25_know_top_2_resp --model_name=CotMAE_CL_Psd_BM25_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=2 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=2 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_2_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+
+### Retrieved passage의 수에 따른 response 정확도 확인 (n_docs=3)
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=3 --log_name=794_CotMAE_CL_Psd_BM25_know_top_2_resp --model_name=CotMAE_CL_Psd_BM25_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=3 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_1_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_1 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
+# python main.py --version=2 --task=resp --batch_size=32 --num_epochs=10 --rag_epochs=10 --rag_n_docs=3 --log_name=794_CotMAE_CL_Psd_BM25_know_top_top_2_resp --model_name=CotMAE_CL_Psd_BM25_top_know_top_2 --knowledge_method=cotmae --rag_our_model=cotmae --device=0
 
 
 

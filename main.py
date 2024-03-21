@@ -69,13 +69,12 @@ def add_ours_specific_args(parser):
 
 
 def main(args=None):
-    utils.set_seed()
     parser = argparse.ArgumentParser(description="ours_main.py")
     parser = utils.default_parser(parser)
     parser = add_ours_specific_args(parser)
-
     args = parser.parse_args()
-
+    
+    utils.set_seed(args.seed)
     args = utils.dir_init(args)
     initLogging(args)
 
