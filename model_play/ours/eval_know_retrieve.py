@@ -102,7 +102,7 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     for i in test_output_str:
         logger.info(f"{args.model_name}: {i}")
     torch.cuda.empty_cache()
-    
+
 
 def save_pred_know_json(data_path, top10_cand_knows, top10_cand_knows_conf):
     from json import dumps
@@ -186,14 +186,40 @@ def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=No
                     {'goal_type': args.goalDic['int'][batch['goal_idx'][batch_id].item()], 'topic': ground_topic, 'passage_hit': correct, 'dialog': input_text, 'target': target_knowledge_text, 'response': gen_response, "predict5": retrieved_knowledge_text, 'topic_len': batch['topic_len'].tolist()[0],
                      'candidate_topic_entities': candidate_topic, 'selected_topic':selected_topic,'rec_hit': rec_hit})
             # save_json(args, f"{args.time}_{args.model_name}_inout", jsonlineSave)
-        top10_cand_knows.extend([[knowledgeDB[int(idx)] for idx in top10] for top10 in torch.topk(dot_score, k=10).indices])
-        top10_cand_knows_conf.extend([[float(j) for j in i] for i in torch.topk(dot_score, k=10).values])
+        top10_know_tmp = [[knowledgeDB[int(idx)] for idx in top10] for top10 in torch.topk(dot_score, k=10).indices]
+        top10_conf_tmp = [[float(j) for j in i] for i in torch.topk(dot_score, k=10).values]
+        target_know_tmp = [knowledgeDB[int(top10)] for top10 in target_knowledge_idx]
+        top10_know_sort, top10_conf_sort = [], []
+        if args.sort_candidates:
+            for candidates, confs, target in zip(top10_know_tmp, top10_conf_tmp, target_know_tmp):
+                if target in candidates:
+                    idx = candidates.index(target)
+                    if idx != 0:
+                        conf = confs[0]
+                        candidates.pop(idx)
+                        confs.pop(idx)
+                        candidates.insert(0,target)
+                        confs.insert(0,conf)
+                else:
+                    conf = confs[0]
+                    candidates.pop()
+                    confs.pop()
+                    candidates.insert(0,target)
+                    confs.insert(0,conf)
+                
+                top10_know_sort.append(candidates)
+                top10_conf_sort.append(confs)
+            top10_cand_knows.extend(top10_know_sort)
+            top10_cand_knows_conf.extend(top10_conf_sort)
+        else:    
+            top10_cand_knows.extend(top10_know_tmp) # 이건 왜 =임? extend 해야 하는거아님?
+            top10_cand_knows_conf.extend(top10_conf_tmp)
         contexts.extend(tokenizer.batch_decode(dialog_token, skip_special_tokens=False))
         responses.extend(tokenizer.batch_decode(response, skip_special_tokens=False))
         is_new_knows.extend([idx.item() for idx in new_knowledge])
         g_goals.extend(batch_goals)
         g_topics.extend(batch_topics)
-        target_knows.extend([knowledgeDB[int(top10)] for top10 in target_knowledge_idx])
+        target_knows.extend(target_know_tmp)
 
     hitdic, hitdic_ratio, output_str = evaluator_conv.know_hit_ratio(args, pred_pt=top10_cand_knows, gold_pt=target_knows, new_knows=is_new_knows, types=g_goals)
     topic_len_avg = np.average(topic_lens)
@@ -212,3 +238,4 @@ def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=No
     logger.info(f"avg topic: %.2f" % topic_len_avg)
 
     return hitdic_ratio, output_str, top10_cand_knows, top10_cand_knows_conf
+

@@ -21,9 +21,9 @@
 
 
 ### Pred-K로 pred augmented data 생성 (CL)
-# python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_know_top_2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
-# python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_top_know_top_2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
-python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_top_know_top_1 --train_ablation=CL --topk_topic=1 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=1
+# python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_100hit_know_top_2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+# python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_100hit_top_know_top_2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+python main.py --task=pred_k --model_name=CotMAE_CL_Psd_BM25_100hit_top_know_top_1 --train_ablation=CL --topk_topic=1 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=1
 
 
 ## RGL

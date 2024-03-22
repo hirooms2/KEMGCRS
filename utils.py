@@ -137,6 +137,9 @@ def default_parser(parser):
 
     # Default For Goal-Topic task
 
+    # Default For Pred-K task
+    parser.add_argument('--sort_candidates', default=False, type=bool, help="Move target knowledge to the first in candidate list")
+
     # Default For Knowledge retrieve task
     parser.add_argument('--max_length', default=128, type=int, help="dataset name")  # max_length_know 로 변경 예정
     parser.add_argument("--know_ablation", default='pseudo', type=str, help="know_ablation", choices=['target', 'pseudo'])
