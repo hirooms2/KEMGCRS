@@ -95,9 +95,13 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     # test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_test_know_3711.txt'))
     
     # item select 수에 따른 pred_aug 데이터셋 통제 // 240315 JP
-    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_train_know_3711.txt'))
-    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_test_know_3711.txt'))
+    # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_train_know_3711.txt'))
+    # test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_test_know_3711.txt'))
     
+    # item select 수 및 hit 100 sorted에 따른 pred_aug 데이터셋 통제 // 240325 JP
+    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}hit_100_sort_0_train_know_3711.txt'))
+    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}hit_100_sort_0_test_know_3711.txt')) 
+
     # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     data_utils.eval_pred_loads(test_dataset_pred_aug, task='know')
