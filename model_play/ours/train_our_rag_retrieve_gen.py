@@ -91,19 +91,19 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
     if args.idea=='top1': middle_path = 'our/top1'
     
     # 0.523 setting (ESPRESSO - Best setting) // 240315 JP
-    # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_train_know_3711.txt'))
+    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_train_know_3711.txt'))
     # test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_test_know_3711.txt'))
     
     # item select 수에 따른 pred_aug 데이터셋 통제 // 240315 JP
     # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_train_know_3711.txt'))
     # test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}_0_test_know_3711.txt'))
     
-    # item select 수 및 hit 100 sorted에 따른 pred_aug 데이터셋 통제 // 240325 JP
-    train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}hit_100_sort_0_train_know_3711.txt'))
-    test_dataset_pred_aug  = data_utils.read_pred_json_lines(test_dataset_pred_aug,  os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_{args.model_name}hit_100_sort_0_test_know_3711.txt')) 
-
     # train_dataset_pred_aug = data_utils.read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     # test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+    
+    # candidate passage variation에 따른 pred_aug 데이터셋 통제 // 240327 JP
+    test_dataset_pred_aug = data_utils.read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir,'pred_aug', 'know', middle_path , args.knowledge_method, f'en_test_know_3711_{args.know_candidate_variation}.txt'))
+    
     data_utils.eval_pred_loads(test_dataset_pred_aug, task='know')
 
     # Get Pseudo label
@@ -289,6 +289,7 @@ def train_our_rag_generation(args, bert_model, tokenizer, train_dataset_raw, val
                 if best_bleu_dic['bleu@2'] <= report['bleu@2']:
                     best_bleu_dic = report
                     best_hitdic_str = output_str
+                    torch.save(rag_model.state_dict(), os.path.join(args.rag_model_dir, f"{args.model_name}_ver_{args.know_candidate_variation}_ndocs_{args.rag_n_docs}.pt"))
             else:
                 hitDic, hitdic_ratio, output_str = epoch_play(args, rag_tokenizer, rag_model, test_dataloader, optimizer, scheduler, epoch, faiss_dataset, mode='test')
                 if best_hitdic_ratio['total']['hit1'] <= hitdic_ratio['total']['hit1']:

@@ -130,6 +130,7 @@ def default_parser(parser):
     parser.add_argument('--saved_model_path', default='', type=str, help="saved model file name")  # TH: model file directory
 
     parser.add_argument('--log_name', default='', type=str, help="log file name")  # HJ: log file name
+
     parser.add_argument('--version', default='2', type=str, help="DuRec Version")  # HJ: log file name
     parser.add_argument("--debug", action='store_true', help="Whether to run debug.")  # HJ
 
@@ -164,6 +165,9 @@ def default_parser(parser):
 
     parser.add_argument("--fast", action='store_true', help="Other models input fast (read pkl with confidence of ours)")
 
+    # Default For Rag generation task
+    parser.add_argument('--know_candidate_variation', type=str, help="Candidate passaeg selecting variation", choices=['random','random_sametopic'])
+
     return parser
 
 
@@ -193,9 +197,10 @@ def dir_init(default_args, with_check=True):
     args.saved_model_path = os.path.join(args.home, 'model_save', args.version)
     # args.saved_model_dir = os.path.join(args.home, 'model_save', args.version, args.method)
     args.model_dir = os.path.join(args.home, 'model_save', args.version, args.method)
+    args.rag_model_dir = os.path.join(args.home, 'model_save', args.version, "RAG")
     # args.rag_our_model = args.rag_our_model.upper()
 
-    checkPath(args.data_dir, args.saved_model_path, args.log_dir)
+    checkPath(args.data_dir, args.saved_model_path, args.log_dir, args.rag_model_dir)
     checkPath(os.path.join(args.data_dir, 'pred_aug'))
     if with_check:
         checkPath(os.path.join(args.output_dir))

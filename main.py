@@ -94,9 +94,9 @@ def main(args=None):
     logger.info(bert_model.config)
 
     logger.info("Read raw file")
-    train_dataset_raw, train_knowledge_base, train_knowledge_topic = data_utils.dataset_reader(args, 'train')
-    test_dataset_raw, valid_knowledge_base, test_knowledge_topic = data_utils.dataset_reader(args, 'test')
-    valid_dataset_raw, test_knowledge_base, _ = data_utils.dataset_reader(args, 'dev')
+    train_dataset_raw, train_knowledge_base, train_knowledge_topic, train_know2topic_dic, train_topic2know_dic = data_utils.dataset_reader(args, 'train')
+    test_dataset_raw, valid_knowledge_base, test_knowledge_topic, test_know2topic_dic, test_topic2know_dic = data_utils.dataset_reader(args, 'test')
+    valid_dataset_raw, test_knowledge_base, _, valid_know2topic_dic, valid_topic2know_dic = data_utils.dataset_reader(args, 'dev')
 
     if os.path.exists(os.path.join(args.data_dir, "topic2id_new.txt")) and os.path.exists(os.path.join(args.data_dir, "goal2id_new.txt")):
         topicDic = readDic(os.path.join(args.data_dir, "topic2id_new.txt"))
@@ -134,6 +134,7 @@ def main(args=None):
     args.all_knowledgeDB = all_knowledgeDB
     log_args(args)
     temp_epoch = args.num_epochs
+
     if 'goal' in args.task:
         args.num_epochs = 15
         # Goal Prediction TASk

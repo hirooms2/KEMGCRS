@@ -210,7 +210,8 @@ def read_pred_json_lines(dataset, data_path):
         for idx, le in tqdm(enumerate(f), desc="READ_Pred", bar_format='{l_bar} | {bar:23} {r_bar}'):
             preds = json.loads(le)
             for k,v in preds.items():
-                if k == "predicted_know_conf": dataset[idx]['predicted_know_confidence'] = v # OMG........
+                if k == "predicted_know_conf":
+                    dataset[idx]['predicted_know_confidence'] = [float(i) for i in v] # OMG........
                 dataset[idx][k] = v
     return dataset
 
@@ -227,6 +228,8 @@ def dataset_reader(args, data_name='train', dataset=None):
     all_knowledge = set()
     all_knowledge_topic = []
     conversation_sample = []
+    know2topicDic = {}
+    topic2knowDic = {}
     if dataset: f=dataset
     else: 
         data_path = os.path.join(args.data_dir, f"en_{data_name}_know_cand_score20_new.txt")
@@ -243,10 +246,28 @@ def dataset_reader(args, data_name='train', dataset=None):
         for i in range(2, len(conversation)):
             role_seq.append(role_seq[i % 2])
 
+        goal_topic_list = dialog['goal_topic_list']
         knowledge_seq = dialog['knowledge']
         know_candidates = dialog['know_candidates']
         pseudo_knowledge_seq = []
         pseudo_confidence_seq = []
+        for topic, know in zip(goal_topic_list, knowledge_seq):
+            if len(know):
+                know = convert_know(know)
+                if know in know2topicDic:
+                    know2topicDic[know].append(topic)
+                    know2topicDic[know] = list(set(know2topicDic[know]))
+                else:
+                    know2topicDic[know] = [topic]
+                    know2topicDic[know] = list(set(know2topicDic[know]))
+                if topic in topic2knowDic:
+                    topic2knowDic[topic].append(know)
+                    topic2knowDic[topic] = list(set(topic2knowDic[topic]))
+                else:
+                    topic2knowDic[topic] = [know]
+                    topic2knowDic[topic] = list(set(topic2knowDic[topic]))
+        
+
         for idx, know_conf_list in enumerate(know_candidates):
             positive_candidates = [know[0] for know in know_conf_list]
             # knowledge_topic = [args.topicDic['str'][candidate[0]] if candidate[0] in args.topicDic else 0 for candidate in positive_candidates]
@@ -278,7 +299,7 @@ def dataset_reader(args, data_name='train', dataset=None):
         })
     if dataset: pass 
     else: f.close()
-    return conversation_sample, list(all_knowledge), all_knowledge_topic
+    return conversation_sample, list(all_knowledge), all_knowledge_topic, know2topicDic, topic2knowDic
 
 def dataset_reader_ko(args, data_name='train'):
     all_knowledge = set()
