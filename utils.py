@@ -143,7 +143,7 @@ def default_parser(parser):
 
     # Default For Knowledge retrieve task
     parser.add_argument('--max_length', default=128, type=int, help="dataset name")  # max_length_know 로 변경 예정
-    parser.add_argument("--know_ablation", default='pseudo', type=str, help="know_ablation", choices=['target', 'pseudo'])
+    parser.add_argument("--know_ablation", default='pseudo', type=str, help="know_ablation", choices=['target', 'pseudo', 'gpt_selection'])
     parser.add_argument("--train_ablation", default='RG', type=str, help="train ablation", choices=['CL', 'RG', 'GL'])
     parser.add_argument("--train_ablation_reverse", action='store_true', help="train ablation_reverse index")
     parser.add_argument('--topk_topic', default=2, type=int, help="num of topics for input prompt")

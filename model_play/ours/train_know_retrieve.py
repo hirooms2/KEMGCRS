@@ -66,6 +66,11 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     eval_pred_loads(test_dataset_pred_aug, task='label')
 
+    train_file_path = os.path.join(args.home, 'data/2/pred_aug/train_pred_aug_dataset_new.pkl')
+    train_dataset_pred_aug = pickle.load(open(file=train_file_path, mode='rb'))
+
+    test_file_path = os.path.join(args.home, 'data/2/pred_aug/test_pred_aug_dataset_new.pkl')
+    test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
 
 
     # train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]

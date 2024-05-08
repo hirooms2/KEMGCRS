@@ -11,7 +11,7 @@ from config import *
 from models.ours.retriever import Retriever  # KEMGCRS
 from data_model import GenerationDataset
 from data_model_know import DialogDataset, KnowledgeDataset
-from rank_bm25 import BM25Okapi
+# from rank_bm25 import BM25Okapi
 from model_play.ours.train_bert_goal_topic import train_goal_topic_bert, pred_goal_topic_aug, eval_goal_topic_model
 from model_play.ours import train_know_retrieve, eval_know_retrieve  # , train_our_rag_retrieve_gen
 # from model_play.ours.eval_know import *
