@@ -147,6 +147,7 @@ def default_parser(parser):
     parser.add_argument("--train_ablation", default='RG', type=str, help="train ablation", choices=['CL', 'RG', 'GL'])
     parser.add_argument("--train_ablation_reverse", action='store_true', help="train ablation_reverse index")
     parser.add_argument('--topk_topic', default=2, type=int, help="num of topics for input prompt")
+    parser.add_argument('--select_topic', default=1, type=int, help="num of topics for input prompt")
     parser.add_argument('--topic_conf', type=float, default=0.7, help='Minimum threshold for topic confidence')
     parser.add_argument('--know_conf', type=float, default=0.2, help='Minimum threshold for topic confidence')
     parser.add_argument("--know_max_length", type=int, default=128, help=" Knowledge Max Length ")
