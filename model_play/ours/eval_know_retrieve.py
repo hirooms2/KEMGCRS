@@ -115,7 +115,8 @@ def save_pred_know_json(data_path, top10_cand_knows, top10_cand_knows_conf):
     logger.info(f"New output: {data_path}")
     with open(data_path, 'a', encoding='utf8') as fw:
         for k,c in zip(top10_cand_knows, top10_cand_knows_conf):
-            fw.write(dumps({'predicted_know' : k[:5],'predicted_know_confidence' : c[:5]}) + "\n")
+            fw.write(dumps({'predicted_know' : k[:10],'predicted_know_confidence' : c[:10]}) + "\n") # 10개 넣어주기
+            # fw.write(dumps({'predicted_know' : k[:5],'predicted_know_confidence' : c[:5]}) + "\n") # 5개 넣어주기
 
 
 def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=None, retrieve=None, data_type='test'):

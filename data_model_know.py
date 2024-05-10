@@ -155,10 +155,16 @@ class DialogDataset(Dataset):
         context_batch['topic'] = self.tokenizer(topic, truncation=True, padding='max_length', max_length=32).input_ids
 
         candidate_confidences_pos = candidate_confidences[:self.args.pseudo_pos_num]
+        candidate_knowledges_pos = candidate_knowledges[:self.args.pseudo_pos_num]
+
         if self.args.know_ablation == 'gpt_selection' and self.mode == 'train':
-            candidate_knowledges_pos = [self.knowledgeDB.index(data['gpt_selection'])]
-        else:
-            candidate_knowledges_pos = candidate_knowledges[:self.args.pseudo_pos_num]
+            gpt_knowledge_idx = self.knowledgeDB.index(data['gpt_selection'])
+            if gpt_knowledge_idx in candidate_knowledges_pos:
+                candidate_knowledges_pos.remove(gpt_knowledge_idx)
+                candidate_knowledges_pos.insert(0, gpt_knowledge_idx)
+            else:
+                candidate_knowledges_pos.insert(0, gpt_knowledge_idx)
+                candidate_knowledges_pos = candidate_knowledges_pos[:self.args.pseudo_pos_num]
 
         pseudo_negative = self.negative_sampler(candidate_knowledges_pos, candidate_knowledges) # For Hard-negative sample 
 

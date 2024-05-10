@@ -13,6 +13,17 @@
 # python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_Psd_BM25 --model_name=CotMAE_CL_Psd_BM25 --topk_topic=2 --topic_conf=0.7 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
 # python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_Psd_BM25_top --model_name=CotMAE_CL_Psd_BM25_top --topk_topic=2 --topic_conf=1 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
 # python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_Psd_BM25_top --model_name=CotMAE_CL_Psd_BM25_top --topk_topic=1 --topic_conf=1 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
+python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_GPT_BM25_top2 --model_name=CotMAE_CL_GPT_BM25_top2 --topk_topic=2 --topic_conf=1 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=1 --knowledge_method=cotmae --know_ablation=gpt_selection --device=0
+python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_GPT_BM25_top1 --model_name=CotMAE_CL_GPT_BM25_top1 --topk_topic=1 --topic_conf=1 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=1 --knowledge_method=cotmae --know_ablation=gpt_selection --device=1
+python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_GPT_BM25_adaptive --model_name=CotMAE_CL_GPT_BM25_adaptive --topk_topic=2 --topic_conf=0.7 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=1 --knowledge_method=cotmae --know_ablation=gpt_selection --device=0
+
+# Pred-K
+python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_top2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_top1 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_adaptive --train_ablation=CL --topk_topic=2 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+
+# "args":["--device=0","--batch_size=32","--version=2","--task=know","--num_epochs=1","--input_prompt=dialog_topic","--log_name=DEBUG_CotMAE_CL_gpt","--model_name=CotMAE_CL_gpt","--topk_topic=2","--topic_conf=1.0","--train_ablation=CL","--pseudo_pos_num=1","--knowledge_method=cotmae","--know_ablation=gpt_selection"],
+
 
 # ### Pred-K로 pred augmented data 생성 (RGL)
 # python main.py --task=pred_k --model_name=CotMAE_RG_Psd_BM25_know_top_2 --train_ablation=RG --topk_topic=2 --pseudo_pos_num=2 --rag_our_model=cotmae --knowledge_method=cotmae --device=0

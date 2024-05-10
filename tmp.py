@@ -3,6 +3,8 @@ import json
 import random
 from tqdm import tqdm 
 
+results = pickle.load(open("/home/user/junpyo/KEMGCRS/output/2/ours/2024-05-08_152122_CotMAE_CL_GPT_BM25_top1/best_model_best_setting.pkl", 'rb'))
+
 raw = pickle.load(open("/home/user/junpyo/KEMGCRS/data/2/pred_aug/pkl_794/test_pred_aug_dataset.pkl", 'rb'))
 
 pred = json.load(open("/home/user/junpyo/KEMGCRS/data/2/pred_aug/know/our/cotmae/en_test_know_3711_copy.txt", 'r', encoding='utf-8'))
