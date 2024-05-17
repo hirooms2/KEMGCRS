@@ -58,7 +58,7 @@ class DialogDataset(Dataset):
         self.knowledgeDB = knowledgeDB
         self.train_knowledgeDB = train_knowledgeDB  # new knowledge 체크용
         self.augmented_raw_sample = data_sample
-        self.know_max_length = args.know_max_length # 128
+        self.know_max_length = args.know_max_length  # 128
         self.mode = mode
 
     def negative_sampler(self, target_knowledge, candidate_knowledges):
@@ -84,8 +84,10 @@ class DialogDataset(Dataset):
         data = self.augmented_raw_sample[idx]
         cbdicKeys = ['dialog', 'user_profile', 'response', 'goal', 'topic', 'situation', 'target_knowledge', 'candidate_knowledges', 'candidate_confidences']
         dialog, user_profile, response, goal, topic, situation, target_knowledge, candidate_knowledges, candidate_confidences = [data[i] for i in cbdicKeys]
-        if self.args.version=='2': candidate_knowledges = [self.knowledgeDB.index(passage) for passage in candidate_knowledges]
-        else: candidate_knowledges = [self.knowledgeDB.index(passage.replace('\t',' ')) for passage in candidate_knowledges]
+        if self.args.version == '2':
+            candidate_knowledges = [self.knowledgeDB.index(passage) for passage in candidate_knowledges]
+        else:
+            candidate_knowledges = [self.knowledgeDB.index(passage.replace('\t', ' ')) for passage in candidate_knowledges]
         # candidate_confidences = min_max_norm(candidate_confidences)
         candidate_confidences = softmax(candidate_confidences)
 
@@ -94,25 +96,25 @@ class DialogDataset(Dataset):
 
         context_batch = defaultdict()
 
-        predicted_topic_list = deepcopy(data['predicted_topic'][self.args.select_topic-1:self.args.topk_topic])
-        predicted_topic_confidence_list = deepcopy(data['predicted_topic_confidence'][self.args.select_topic-1:self.args.topk_topic])
+        predicted_topic_list = deepcopy(data['predicted_topic'][self.args.select_topic - 1:self.args.topk_topic])
+        predicted_topic_confidence_list = deepcopy(data['predicted_topic_confidence'][self.args.select_topic - 1:self.args.topk_topic])
 
         predicted_goal = data['predicted_goal'][0]
-        
+
         if self.mode == 'train':
             random.shuffle(predicted_topic_list)
             candidate_topic_entities = predicted_topic_list
             predicted_topic = '|'.join(candidate_topic_entities)
         else:
-            if self.args.know_item_select=='conf':
+            if self.args.know_item_select == 'conf':
                 cum_prob = 0
                 candidate_topic_entities = []
                 for p_topic, conf in zip(predicted_topic_list, predicted_topic_confidence_list):
-                    if cum_prob < self.args.topic_conf: # or cum_prob == 0:
+                    if cum_prob < self.args.topic_conf:  # or cum_prob == 0:
                         candidate_topic_entities.append(p_topic)
                         cum_prob += conf
                         # break
-            elif self.args.know_item_select=='top':
+            elif self.args.know_item_select == 'top':
                 candidate_topic_entities = predicted_topic_list
             predicted_topic = '|'.join(candidate_topic_entities)
         topic_len = len(candidate_topic_entities)
@@ -155,9 +157,15 @@ class DialogDataset(Dataset):
         context_batch['topic'] = self.tokenizer(topic, truncation=True, padding='max_length', max_length=32).input_ids
 
         candidate_confidences_pos = candidate_confidences[:self.args.pseudo_pos_num]
-        candidate_knowledges_pos = candidate_knowledges[:self.args.pseudo_pos_num]
+        # candidate_knowledges_pos = candidate_knowledges[:self.args.pseudo_pos_num]
 
-        pseudo_negative = self.negative_sampler(candidate_knowledges_pos, candidate_knowledges) # For Hard-negative sample 
+        if self.args.know_ablation == 'gpt_selection' and self.mode == 'train':
+            gpt_knowledge_idx = self.knowledgeDB.index(data['gpt_selection'])
+            candidate_knowledges_pos = [gpt_knowledge_idx]
+        else:
+            candidate_knowledges_pos = candidate_knowledges[:self.args.pseudo_pos_num]
+
+        pseudo_negative = self.negative_sampler(candidate_knowledges_pos, candidate_knowledges)  # For Hard-negative sample
 
         if self.args.know_ablation == 'target':
             if target_knowledge_idx in candidate_knowledges_pos:
@@ -185,7 +193,7 @@ class DialogDataset(Dataset):
         context_batch['new_knowledge'] = self.knowledgeDB[target_knowledge_idx] not in self.train_knowledgeDB
         context_batch['isFood'] = (goal == 'Food recommendation')
         context_batch['topic_len'] = topic_len
-        context_batch['candidate_topic_entities'] = [self.args.topicDic['str'][i] for i in candidate_topic_entities] + [0] * (self.args.topk_topic-len(candidate_topic_entities))
+        context_batch['candidate_topic_entities'] = [self.args.topicDic['str'][i] for i in candidate_topic_entities] + [0] * (self.args.topk_topic - len(candidate_topic_entities))
         # context_batch['candidate_topic_entities'] = context_batch['candidate_topic_entities'] + [0] * (self.args.topk_topic-len(candidate_topic_entities))
         context_batch['indices'] = idx
         for k, v in context_batch.items():
