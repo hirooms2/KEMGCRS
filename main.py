@@ -74,7 +74,7 @@ def main(args=None):
     parser = add_ours_specific_args(parser)
     args = parser.parse_args()
     
-    utils.set_seed(args.seed)
+    # utils.set_seed(args.seed)
     args = utils.dir_init(args)
     initLogging(args)
 
