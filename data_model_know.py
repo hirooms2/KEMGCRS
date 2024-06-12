@@ -96,8 +96,12 @@ class DialogDataset(Dataset):
 
         context_batch = defaultdict()
 
-        predicted_topic_list = deepcopy(data['predicted_topic'][self.args.select_topic - 1:self.args.topk_topic])
-        predicted_topic_confidence_list = deepcopy(data['predicted_topic_confidence'][self.args.select_topic - 1:self.args.topk_topic])
+        if self.args.LM_selection and self.mode=='test':
+            predicted_topic_list = [data['lm_topic']]
+            predicted_topic_confidence_list = [1.0]
+        else:
+            predicted_topic_list = deepcopy(data['predicted_topic'][self.args.select_topic - 1:self.args.topk_topic])
+            predicted_topic_confidence_list = deepcopy(data['predicted_topic_confidence'][self.args.select_topic - 1:self.args.topk_topic])
 
         predicted_goal = data['predicted_goal'][0]
 
@@ -193,7 +197,7 @@ class DialogDataset(Dataset):
         context_batch['new_knowledge'] = self.knowledgeDB[target_knowledge_idx] not in self.train_knowledgeDB
         context_batch['isFood'] = (goal == 'Food recommendation')
         context_batch['topic_len'] = topic_len
-        context_batch['candidate_topic_entities'] = [self.args.topicDic['str'][i] for i in candidate_topic_entities] + [0] * (self.args.topk_topic - len(candidate_topic_entities))
+        # context_batch['candidate_topic_entities'] = [self.args.topicDic['str'][i] for i in candidate_topic_entities] + [0] * (self.args.topk_topic - len(candidate_topic_entities))
         # context_batch['candidate_topic_entities'] = context_batch['candidate_topic_entities'] + [0] * (self.args.topk_topic-len(candidate_topic_entities))
         context_batch['indices'] = idx
         for k, v in context_batch.items():

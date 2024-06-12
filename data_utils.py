@@ -219,16 +219,18 @@ def read_pred_json_lines(dataset, data_path):
 
 def read_lm_pred_json_lines(dataset, data_path):
     with open(data_path, 'r', encoding='utf-8') as f:
-        for idx, le in tqdm(enumerate(f), desc="READ_Pred", bar_format='{l_bar} | {bar:23} {r_bar}'):
-            preds = json.loads(le)
-            for k,v in preds.items():
-                if k == 'GEN':
-                    lm_topic = v.split("\"")[1]
-                    lm_topic = lm_topic[:-1] if lm_topic[-1]=='.' else lm_topic
-                    dataset[idx]['lm_topic'] = lm_topic
-                    break
-                else:
-                    continue
+        fuck = json.load(f)
+
+    for idx, preds in tqdm(enumerate(fuck), desc="READ_Pred", bar_format='{l_bar} | {bar:23} {r_bar}'):
+        # preds = json.loads(le)
+        for k,v in preds.items():
+            if k == 'GEN':
+                lm_topic = v.split("suitable topic is \"")[1]
+                lm_topic = lm_topic.replace("\"","")
+                dataset[idx]['lm_topic'] = lm_topic
+                break
+            else:
+                continue
     return dataset
 
 def eval_pred_loads(dataset, task='goal'):

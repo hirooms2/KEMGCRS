@@ -18,6 +18,11 @@ python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20
 python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_CL_GPT_BM25_adaptive --model_name=CotMAE_CL_GPT_BM25_adaptive --topk_topic=2 --topic_conf=0.7 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=1 --knowledge_method=cotmae --know_ablation=gpt_selection --device=0
 
 # Pred-K
+# LM selection
+python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_top1_know_top_1 --train_ablation=CL --topk_topic=1 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --LM_selection --device=0
+# 509 재확인
+python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_top1_know_top_1 --train_ablation=CL --topk_topic=1 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
+
 python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_top2 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
 python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_top1 --train_ablation=CL --topk_topic=2 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --device=0
 python main.py --task=pred_k --model_name=CotMAE_CL_GPT_BM25_adaptive --train_ablation=CL --topk_topic=2 --pseudo_pos_num=1 --rag_our_model=cotmae --knowledge_method=cotmae --device=0

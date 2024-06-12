@@ -72,7 +72,7 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
     # 240612 LM selection 결과 넣어주기
     if args.LM_selection:
-        test_dataset_pred_aug = read_lm_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_lm_3711.txt'))
+        test_dataset_pred_aug = read_lm_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_lm_3711_321.json'))
 
     eval_pred_loads(test_dataset_pred_aug, task='topic')
 
@@ -107,8 +107,8 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
 
     with torch.no_grad():
         retriever.to(args.device)
-        hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
-        save_pred_know_json(os.path.join(args.output_dir, f"en_{model_name}_{iter_count}_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
+        # hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
+        # save_pred_know_json(os.path.join(args.output_dir, f"en_{model_name}_{iter_count}_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
         hitdic_ratio, test_output_str, test_top10_cand_knows, test_top10_cand_knows_conf = eval_know(args, test_dataloader_retrieve, retriever, all_knowledgeDB, tokenizer, data_type='test')
         save_pred_know_json(os.path.join(args.output_dir, f"en_{model_name}_{iter_count}_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
     for i in test_output_str:
@@ -162,7 +162,7 @@ def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=No
         dialog_mask = batch['attention_mask']
         response = batch['response']
         new_knowledge = batch['new_knowledge']
-        candidate_topic_entities = batch['candidate_topic_entities']
+        # candidate_topic_entities = batch['candidate_topic_entities']
 
         topic_lens.extend(batch['topic_len'].tolist())
         # candidate_indice = batch['candidate_indice']
@@ -186,18 +186,21 @@ def eval_know(args, test_dataloader, retriever, knowledgeDB, tokenizer, write=No
                 retrieved_knowledge_text = [knowledgeDB[idx].lower() for idx in top_candidate]  # list
                 correct = target_knowledge_idx[batch_id] in top_candidate
                 ground_topic = args.topicDic['int'][batch['topic_idx'][batch_id].item()]
-                candidate_topic = [args.topicDic['int'][i.item()] for i in candidate_topic_entities[batch_id][:topic_lens[batch_id]]]
-                selected_topic = -1
-                for i, topic in enumerate(candidate_topic):
-                    if topic in retrieved_knowledge_text[0]:
-                        selected_topic = i
-                        break
+                # candidate_topic = [args.topicDic['int'][i.item()] for i in candidate_topic_entities[batch_id][:topic_lens[batch_id]]]
+                # selected_topic = -1
+                # for i, topic in enumerate(candidate_topic):
+                #     if topic in retrieved_knowledge_text[0]:
+                #         selected_topic = i
+                #         break
                 rec_hit = ground_topic in retrieved_knowledge_text[0]
 
                 gen_response = tokenizer.decode(response[batch_id], skip_special_tokens=True)
+                # jsonlineSave.append(
+                #     {'goal_type': args.goalDic['int'][batch['goal_idx'][batch_id].item()], 'topic': ground_topic, 'passage_hit': correct, 'dialog': input_text, 'target': target_knowledge_text, 'response': gen_response, "predict5": retrieved_knowledge_text, 'topic_len': batch['topic_len'].tolist()[0],
+                #      'candidate_topic_entities': candidate_topic, 'selected_topic':selected_topic,'rec_hit': rec_hit})
                 jsonlineSave.append(
                     {'goal_type': args.goalDic['int'][batch['goal_idx'][batch_id].item()], 'topic': ground_topic, 'passage_hit': correct, 'dialog': input_text, 'target': target_knowledge_text, 'response': gen_response, "predict5": retrieved_knowledge_text, 'topic_len': batch['topic_len'].tolist()[0],
-                     'candidate_topic_entities': candidate_topic, 'selected_topic':selected_topic,'rec_hit': rec_hit})
+                     'rec_hit': rec_hit})
             # save_json(args, f"{args.time}_{args.model_name}_inout", jsonlineSave)
         top10_know_tmp = [[knowledgeDB[int(idx)] for idx in top10] for top10 in torch.topk(dot_score, k=10).indices]
         top10_conf_tmp = [[float(j) for j in i] for i in torch.topk(dot_score, k=10).values]
