@@ -179,6 +179,7 @@ def process_augment_sample(raw_data, tokenizer=None, knowledgeDB=None, goal_list
             role = conversation['role_seq'][i]
             utterance = conversation['dialog'][i] + eos_token
             goal = conversation['goal'][i]
+            topic = conversation['topic'][i]
             if goal.lower() in goal_list:
                 if role.lower() == 'system' and len(augmented_dialog) > 0 and len(conversation['pseudo_knowledge_seq'][i]) != 0:  # Test 3711 Setting
                     flatten_dialog = ''.join(augmented_dialog)
@@ -188,6 +189,7 @@ def process_augment_sample(raw_data, tokenizer=None, knowledgeDB=None, goal_list
                                          'goal': conversation['goal'][i],
                                          'last_goal': conversation['goal'][i - 1],
                                          'topic': conversation['topic'][i],
+                                         'last_topic': conversation['topic'][i - 1],
                                          'situation': conversation['situation'],
                                          'target_knowledge': conversation['knowledge_seq'][i],
                                          'candidate_knowledges': conversation['pseudo_knowledge_seq'][i],
@@ -213,6 +215,20 @@ def read_pred_json_lines(dataset, data_path):
                 if k == "predicted_know_conf":
                     dataset[idx]['predicted_know_confidence'] = [float(i) for i in v] # OMG........
                 dataset[idx][k] = v
+    return dataset
+
+def read_lm_pred_json_lines(dataset, data_path):
+    with open(data_path, 'r', encoding='utf-8') as f:
+        for idx, le in tqdm(enumerate(f), desc="READ_Pred", bar_format='{l_bar} | {bar:23} {r_bar}'):
+            preds = json.loads(le)
+            for k,v in preds.items():
+                if k == 'GEN':
+                    lm_topic = v.split("\"")[1]
+                    lm_topic = lm_topic[:-1] if lm_topic[-1]=='.' else lm_topic
+                    dataset[idx]['lm_topic'] = lm_topic
+                    break
+                else:
+                    continue
     return dataset
 
 def eval_pred_loads(dataset, task='goal'):

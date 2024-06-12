@@ -8,6 +8,7 @@ from data_model_know import KnowledgeDataset
 from utils import write_pkl, save_json
 import numpy as np
 import pickle
+import json
 from loguru import logger
 import evaluator_conv
 
@@ -35,7 +36,7 @@ def knowledge_reindexing(args, knowledge_data, retriever, stage):
     return knowledge_index
 
 def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, train_knowledgeDB, all_knowledgeDB, bert_model, tokenizer, iter_count=0):
-    from data_utils import process_augment_sample, read_pred_json_lines, eval_pred_loads, save_pred_json_lines
+    from data_utils import process_augment_sample, read_pred_json_lines, eval_pred_loads, save_pred_json_lines, read_lm_pred_json_lines
     from data_model_know import KnowledgeDataset, DialogDataset
     from models.ours.retriever import Retriever
     from json import dumps
@@ -69,12 +70,18 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     # Get predicted goal, topic
     train_dataset_pred_aug = read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
+    # 240612 LM selection 결과 넣어주기
+    if args.LM_selection:
+        test_dataset_pred_aug = read_lm_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_lm_3711.txt'))
+
     eval_pred_loads(test_dataset_pred_aug, task='topic')
 
     # Get Pseudo label
     logger.info(f"Get Pseudo Label {args.pseudo_labeler.upper()}")
     train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+    # 240612 LM selection 결과 넣어주기
+    
     eval_pred_loads(test_dataset_pred_aug, task='label')
 
     if args.debug: train_dataset_pred_aug, test_dataset_pred_aug = train_dataset_pred_aug[:30], test_dataset_pred_aug[:30]

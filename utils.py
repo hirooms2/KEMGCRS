@@ -140,6 +140,7 @@ def default_parser(parser):
 
     # Default For Pred-K task
     parser.add_argument('--sort_candidates', default=False, type=bool, help="Move target knowledge to the first in candidate list")
+    parser.add_argument('--LM_selection', action='store_true', help='Insert LM selection result in pred-k')
 
     # Default For Knowledge retrieve task
     parser.add_argument('--max_length', default=128, type=int, help="dataset name")  # max_length_know 로 변경 예정
