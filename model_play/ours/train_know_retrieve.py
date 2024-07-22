@@ -87,6 +87,19 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
 
     if args.debug: train_dataset_pred_aug, test_dataset_pred_aug = train_dataset_pred_aug[:30], test_dataset_pred_aug[:30]
 
+    #### TEMP: gpt 가 고른 것을 candidate knowledges 로 하는 코드 (ESPRESSO 버전에서는 하면 안됨) ####
+    temp = pickle.load(open("/home/user/junpyo/KEMGCRS/data/2/pred_aug/train_pred_aug_dataset_new.pkl", 'rb'))
+    for idx, i in enumerate(train_dataset_pred_aug):
+        candidate_knowledges_gpt = temp[idx]['candidate_knowledges_gpt']  # gpt_selection = temp[idx]['candidate_knowledges_gpt']
+        candidate_knowledges_gpt = [j for j in candidate_knowledges_gpt if j in train_knowledgeDB and j != '']
+        if len(candidate_knowledges_gpt) != 0:
+            i['candidate_knowledges'] = [j for j in i['candidate_knowledges'] if j not in candidate_knowledges_gpt]
+            i['candidate_knowledges'] = candidate_knowledges_gpt + i['candidate_knowledges']
+            i['candidate_knowledges'] = i['candidate_knowledges'][:20]
+            i['candidate_knowledges_pos'] = candidate_knowledges_gpt
+        else:
+            i['candidate_knowledges_pos'] = i['candidate_knowledges'][:args.pseudo_pos_num]
+
     train_datamodel_know = DialogDataset(args, train_dataset_pred_aug, train_knowledgeDB, train_knowledgeDB, tokenizer, mode='train', task='know')
     # valid_datamodel_know = DialogDataset(args, valid_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
     test_datamodel_know = DialogDataset(args, test_dataset_pred_aug, all_knowledgeDB, train_knowledgeDB, tokenizer, mode='test', task='know')
@@ -138,10 +151,19 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
 
                 if args.train_ablation == 'CL':# Contrastive loss --> 이게 그냥인것
                     g_logit = logit_pos[:, idx]  # For Sampling
+                    g_logit = g_logit.unsqueeze(1)
                 if args.train_ablation == 'RG' or args.train_ablation == 'GL':# GCL
                     g_logit = cumsum_logit[:, idx] / (idx + 1)  # For GCL!!!!!!! (our best)
+                    g_logit = g_logit.unsqueeze(1)
+                if args.train_ablation == "RL":
+                    g_logit = logit_pos[:, idx:]
+                    # if args.know_ablation == 'gpt_selection_rank':
+                    #     g_logit = g_logit + batch['pseudo_targets'][:, idx:].eq(0) * (-1e20)
 
-                g_logit = torch.cat([g_logit.unsqueeze(1), logit_neg], dim=1)
+                g_logit = torch.cat([g_logit, logit_neg], dim=1)
+                # if args.know_ablation == 'gpt_selection_rank':
+                #     g_loss = torch.sum(-torch.log_softmax(g_logit, dim=1).select(dim=1, index=0) * batch['pseudo_targets'][:, idx].ne(0)) / (torch.sum(batch['pseudo_targets'][:, idx].ne(0)))
+                # else:
                 g_loss = (-torch.log_softmax(g_logit, dim=1).select(dim=1, index=0)).mean()
                 loss += g_loss
             if args.train_ablation == 'GL':

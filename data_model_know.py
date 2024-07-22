@@ -166,18 +166,19 @@ class DialogDataset(Dataset):
         if self.args.know_ablation == 'gpt_selection' and self.mode == 'train':
             gpt_knowledge_idx = self.knowledgeDB.index(data['gpt_selection'])
             candidate_knowledges_pos = [gpt_knowledge_idx]
+        elif self.args.know_ablation == 'target':
+            candidate_knowledges_pos = [target_knowledge_idx]
+        elif self.args.know_ablation == 'gpt_selection_rank' and self.mode == 'train':
+            candidate_knowledges_pos = [self.knowledgeDB.index(passage) for passage in data['candidate_knowledges_pos']]
+            if len(candidate_knowledges_pos) < self.args.pseudo_pos_num:
+                candidate_knowledges_pos = candidate_knowledges_pos + [0] * (self.args.pseudo_pos_num - len(candidate_knowledges_pos))
+            else:
+                candidate_knowledges_pos = candidate_knowledges_pos[:self.args.pseudo_pos_num]
         else:
             candidate_knowledges_pos = candidate_knowledges[:self.args.pseudo_pos_num]
 
         pseudo_negative = self.negative_sampler(candidate_knowledges_pos, candidate_knowledges)  # For Hard-negative sample
 
-        if self.args.know_ablation == 'target':
-            if target_knowledge_idx in candidate_knowledges_pos:
-                candidate_knowledges_pos.remove(target_knowledge_idx)
-                candidate_knowledges_pos.insert(0, target_knowledge_idx)
-            else:
-                candidate_knowledges_pos.insert(0, target_knowledge_idx)
-                candidate_knowledges_pos = candidate_knowledges_pos[:self.args.pseudo_pos_num]
         candidate_indice = candidate_knowledges_pos + pseudo_negative  # [candidate_positives_idx[self.args.pseudo_pos_rank]]
 
         candidate_knowledge_text = [self.knowledgeDB[idxs] for idxs in candidate_indice]

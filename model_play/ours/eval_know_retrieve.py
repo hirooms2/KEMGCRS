@@ -107,10 +107,14 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
 
     with torch.no_grad():
         retriever.to(args.device)
-        # hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
-        # save_pred_know_json(os.path.join(args.output_dir, f"en_{model_name}_{iter_count}_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
+       
+        hitdic_ratio, train_output_str, train_top10_cand_knows, train_top10_cand_knows_conf = eval_know(args, train_dataloader_retrieve, retriever, train_knowledgeDB, tokenizer, data_type='train')
+        save_pred_know_json(os.path.join(args.output_dir, f"en_{model_name}_{iter_count}_train_know_3711.txt"), train_top10_cand_knows, train_top10_cand_knows_conf)
+       
         hitdic_ratio, test_output_str, test_top10_cand_knows, test_top10_cand_knows_conf = eval_know(args, test_dataloader_retrieve, retriever, all_knowledgeDB, tokenizer, data_type='test')
         save_pred_know_json(os.path.join(args.output_dir, f"en_{model_name}_{iter_count}_test_know_3711.txt"), test_top10_cand_knows, test_top10_cand_knows_conf)
+    for i in train_output_str:
+        logger.info(f"{model_name}: {i}")
     for i in test_output_str:
         logger.info(f"{model_name}: {i}")
     torch.cuda.empty_cache()
