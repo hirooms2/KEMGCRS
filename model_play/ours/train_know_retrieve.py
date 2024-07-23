@@ -72,6 +72,13 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     test_file_path = os.path.join(args.home, 'data/2/pred_aug/test_pred_aug_dataset_new.pkl')
     test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
 
+    ### Inspired 삽입
+    if args.inspired:
+        train_file_path = os.path.join(args.home, 'data/2/inspired/train_pred_aug_dataset_inspired_new2.pkl')
+        train_dataset_pred_aug = pickle.load(open(file=train_file_path, mode='rb'))
+
+        test_file_path = os.path.join(args.home, 'data/2/inspired/test_pred_aug_dataset_inspired_new3.pkl')
+        test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
 
     # train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
     # for idx, data in enumerate(train_dataset):
@@ -90,7 +97,8 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
     #### TEMP: gpt 가 고른 것을 candidate knowledges 로 하는 코드 (ESPRESSO 버전에서는 하면 안됨) ####
     temp = pickle.load(open("/home/user/junpyo/KEMGCRS/data/2/pred_aug/train_pred_aug_dataset_new.pkl", 'rb'))
     for idx, i in enumerate(train_dataset_pred_aug):
-        candidate_knowledges_gpt = temp[idx]['candidate_knowledges_gpt']  # gpt_selection = temp[idx]['candidate_knowledges_gpt']
+        # candidate_knowledges_gpt = temp[idx]['candidate_knowledges_gpt']  # gpt_selection = temp[idx]['candidate_knowledges_gpt']
+        candidate_knowledges_gpt = train_dataset_pred_aug[idx]['candidate_knowledges_gpt']  # gpt_selection = temp[idx]['candidate_knowledges_gpt']
         candidate_knowledges_gpt = [j for j in candidate_knowledges_gpt if j in train_knowledgeDB and j != '']
         if len(candidate_knowledges_gpt) != 0:
             i['candidate_knowledges'] = [j for j in i['candidate_knowledges'] if j not in candidate_knowledges_gpt]
@@ -190,7 +198,10 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
             best_hitdic = hitdic_ratio
             eval_metric[0] = hitdic_ratio['total']['hit1']
             # torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_know.pt"))  # TIME_MODELNAME 형식
-            torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_know_top_{args.topk_topic}.pt"))  # TIME_MODELNAME 형식 03/11 JP 실험
+            if args.inspired:
+                torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_inspired_{args.topk_topic}.pt"))  # TIME_MODELNAME 형식 07/22 JP 실험
+            else:
+                torch.save(retriever.state_dict(), os.path.join(args.saved_model_path, f"{args.model_name}_know_top_{args.topk_topic}.pt"))  # TIME_MODELNAME 형식 03/11 JP 실험
 
     hitdic_ratio, output_str, _, _ = eval_know(args, test_dataloader, retriever, all_knowledgeDB, tokenizer, write=True)  # HJ: Knowledge text top-k 뽑아서 output만들어 체크하던 코드 분리
     return best_hitdic, best_output

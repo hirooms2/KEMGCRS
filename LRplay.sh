@@ -13,6 +13,8 @@ python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20
 python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25 --model_name=CotMAE_RG_Psd_BM25 --topk_topic=3 --topic_conf=0.7 --train_ablation=CL --pseudo_labeler=bm25 --pseudo_pos_num=3 --knowledge_method=cotmae --device=1;
 python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25 --model_name=CotMAE_RG_Psd_BM25 --topk_topic=3 --topic_conf=0.7 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=3 --knowledge_method=cotmae --device=1
 
+# inspired
+python main.py --inspired --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25 --model_name=CotMAE_RG_Psd_BM25 --topk_topic=3 --train_ablation=RL --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0
 
 ### top-n item을 골라 이에 대한 passage를 retrieve (RGL - relevance groupwise learning)
 # python main.py --task=know --batch_size=32 --know_max_length=128 --num_epochs=20 --input_prompt=dialog_topic --log_name=CotMAE_RG_Psd_BM25_top --model_name=CotMAE_RG_Psd_BM25_top --topk_topic=2 --topic_conf=1 --train_ablation=RG --pseudo_labeler=bm25 --pseudo_pos_num=2 --knowledge_method=cotmae --device=0

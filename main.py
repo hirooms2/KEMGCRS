@@ -127,6 +127,22 @@ def main(args=None):
     train_knowledgeDB = list(train_knowledgeDB)
     all_knowledgeDB = list(all_knowledgeDB)
 
+    ## 240722 Inspired
+    if args.inspired:
+        all_knowledgeDB = pickle.load(open(os.path.join(args.data_dir,'inspired/knowledgeDB_inspired.pkl'),'rb'))
+        train_knowledgeDB = all_knowledgeDB = list(all_knowledgeDB)
+        goalDic = json.load(open(os.path.join(args.data_dir,'inspired/goalDic.txt'),'r',encoding='utf-8'))
+        topicDic = json.load(open(os.path.join(args.data_dir,'inspired/topicDic.txt'),'r',encoding='utf-8'))
+
+        goalDic['int'] = {int(i): j for i,j in goalDic['int'].items()}
+        topicDic['int'] = {int(i): j for i,j in topicDic['int'].items()}
+        
+        args.topicDic = topicDic
+        args.goalDic = goalDic
+        args.topic_num = len(topicDic['int'])
+        args.goal_num = len(goalDic['int'])
+        args.taskDic = {'goal': goalDic, 'topic': topicDic}
+
     args.train_knowledge_num = len(train_knowledgeDB)
     args.train_knowledgeDB = train_knowledgeDB
 

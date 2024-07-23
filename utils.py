@@ -133,6 +133,7 @@ def default_parser(parser):
 
     parser.add_argument('--version', default='2', type=str, help="DuRec Version")  # HJ: log file name
     parser.add_argument("--debug", action='store_true', help="Whether to run debug.")  # HJ
+    parser.add_argument("--inspired",action='store_true', help="DPR with inspired dataset") # JP
 
     parser.add_argument('--input_prompt', default='dialog_topic', type=str, help="input_prompt_profile, 추가적으로 profile도 해보긴했음")
 

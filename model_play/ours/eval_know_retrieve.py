@@ -71,15 +71,25 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     train_dataset_pred_aug = read_pred_json_lines(train_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_train_3711.txt'))
     test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
     # 240612 LM selection 결과 넣어주기
+    if args.inspired:
+        train_file_path = os.path.join(args.home, 'data/2/inspired/train_pred_aug_dataset_inspired_new2.pkl')
+        train_dataset_pred_aug = pickle.load(open(file=train_file_path, mode='rb'))
+
+        test_file_path = os.path.join(args.home, 'data/2/inspired/test_pred_aug_dataset_inspired_new3.pkl')
+        test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
+    
     if args.LM_selection:
         test_dataset_pred_aug = read_lm_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_lm_3711_321.json'))
 
     eval_pred_loads(test_dataset_pred_aug, task='topic')
 
     # Get Pseudo label
-    logger.info(f"Get Pseudo Label {args.pseudo_labeler.upper()}")
-    train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
-    test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
+    # inspired에서 pseudo label 넣는 부분 빼주기 위해서 임시작업
+    if not args.inspired:
+        # 원래는 다 살아있었음
+        logger.info(f"Get Pseudo Label {args.pseudo_labeler.upper()}")
+        train_dataset_pred_aug = read_pred_json_lines(train_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_train_pseudo_BySamples3711.txt'))
+        test_dataset_pred_aug = read_pred_json_lines(test_dataset_pred_aug, os.path.join(args.data_dir, 'pseudo_label', args.pseudo_labeler, f'en_test_pseudo_BySamples3711.txt'))
     # 240612 LM selection 결과 넣어주기
     
     eval_pred_loads(test_dataset_pred_aug, task='label')
