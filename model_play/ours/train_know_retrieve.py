@@ -74,10 +74,10 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
 
     ### Inspired 삽입
     if args.inspired:
-        train_file_path = os.path.join(args.home, 'data/2/inspired/train_pred_aug_dataset_inspired_new2.pkl')
+        train_file_path = os.path.join(args.home, 'data/2/inspired2/train_pred_aug_dataset_inspired2_new.pkl')
         train_dataset_pred_aug = pickle.load(open(file=train_file_path, mode='rb'))
 
-        test_file_path = os.path.join(args.home, 'data/2/inspired/test_pred_aug_dataset_inspired_new3.pkl')
+        test_file_path = os.path.join(args.home, 'data/2/inspired/test_pred_aug_dataset_inspired2_new.pkl')
         test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
 
     # train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]

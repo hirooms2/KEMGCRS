@@ -96,13 +96,20 @@ class DialogDataset(Dataset):
 
         context_batch = defaultdict()
 
-        if self.args.LM_selection and self.mode=='test':
-            predicted_topic_list = [data['lm_topic']]
-            predicted_topic_confidence_list = [1.0]
+        if self.mode == 'train':
+            predicted_topic_list = [topic] + [data['predicted_topic'][i] for i in range(len(data['predicted_topic'])) if data['predicted_topic'][i] != topic]
+            predicted_topic_confidence_list = [1.0] + [data['predicted_topic_confidence'][i] for i in range(len(data['predicted_topic'])) if data['predicted_topic'][i] != topic]
         else:
-            predicted_topic_list = deepcopy(data['predicted_topic'][self.args.select_topic - 1:self.args.topk_topic])
-            predicted_topic_confidence_list = deepcopy(data['predicted_topic_confidence'][self.args.select_topic - 1:self.args.topk_topic])
+            if self.args.LM_selection:
+                predicted_topic_list = [data['lm_topic']]
+                predicted_topic_confidence_list = [1.0]
+            else:
+                predicted_topic_list = deepcopy(data['predicted_topic'])
+                predicted_topic_confidence_list = deepcopy(data['predicted_topic_confidence'])
 
+        predicted_topic_list = predicted_topic_list[self.args.select_topic - 1:self.args.topk_topic]
+        predicted_topic_confidence_list = predicted_topic_confidence_list[self.args.select_topic - 1:self.args.topk_topic]
+            
         predicted_goal = data['predicted_goal'][0]
 
         if self.mode == 'train':

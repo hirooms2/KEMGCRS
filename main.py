@@ -129,7 +129,7 @@ def main(args=None):
 
     ## 240722 Inspired
     if args.inspired:
-        all_knowledgeDB = pickle.load(open(os.path.join(args.data_dir,'inspired/knowledgeDB_inspired.pkl'),'rb'))
+        all_knowledgeDB = pickle.load(open(os.path.join(args.data_dir,'inspired/knowledgeDB_inspired2.pkl'),'rb'))
         train_knowledgeDB = all_knowledgeDB = list(all_knowledgeDB)
         goalDic = json.load(open(os.path.join(args.data_dir,'inspired/goalDic.txt'),'r',encoding='utf-8'))
         topicDic = json.load(open(os.path.join(args.data_dir,'inspired/topicDic.txt'),'r',encoding='utf-8'))
