@@ -77,7 +77,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
         train_file_path = os.path.join(args.home, 'data/2/inspired2/train_pred_aug_dataset_inspired2_new2_final.pkl')
         train_dataset_pred_aug = pickle.load(open(file=train_file_path, mode='rb'))
 
-        test_file_path = os.path.join(args.home, 'data/2/inspired2/test_pred_aug_dataset_inspired2_new2.pkl')
+        test_file_path = os.path.join(args.home, 'data/2/inspired2/test_pred_aug_dataset_inspired2_new2_final.pkl')
         test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
 
     # train_dataset_pred_aug = [data for data in train_dataset_pred_aug if data['target_knowledge'] != '' and data['goal'].lower() in goal_list]
@@ -103,7 +103,7 @@ def train_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, tra
         if len(candidate_knowledges_gpt) != 0:
             i['candidate_knowledges'] = [j for j in i['candidate_knowledges'] if j not in candidate_knowledges_gpt]
             i['candidate_knowledges'] = candidate_knowledges_gpt + i['candidate_knowledges']
-            i['candidate_knowledges'] = i['candidate_knowledges'][:20]
+            i['candidate_knowledges'] = i['candidate_knowledges'][:10] if args.inspired else i['candidate_knowledges'][:20]
             i['candidate_knowledges_pos'] = candidate_knowledges_gpt
         else:
             i['candidate_knowledges_pos'] = i['candidate_knowledges'][:args.pseudo_pos_num]

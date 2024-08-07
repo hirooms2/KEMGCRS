@@ -75,7 +75,7 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
         train_file_path = os.path.join(args.home, 'data/2/inspired2/train_pred_aug_dataset_inspired2_new2_final.pkl')
         train_dataset_pred_aug = pickle.load(open(file=train_file_path, mode='rb'))
 
-        test_file_path = os.path.join(args.home, 'data/2/inspired2/test_pred_aug_dataset_inspired2_new2.pkl')
+        test_file_path = os.path.join(args.home, 'data/2/inspired2/test_pred_aug_dataset_inspired2_new2_final.pkl')
         test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
     
     if args.LM_selection:
