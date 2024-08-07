@@ -72,10 +72,10 @@ def aug_pred_know(args, train_dataset_raw, valid_dataset_raw, test_dataset_raw, 
     test_dataset_pred_aug = read_pred_json_lines(test_dataset, os.path.join(args.data_dir, 'pred_aug', 'goal_topic', '794', f'en_test_3711.txt'))
     # 240612 LM selection 결과 넣어주기
     if args.inspired:
-        train_file_path = os.path.join(args.home, 'data/2/inspired2/train_pred_aug_dataset_inspired_new.pkl')
+        train_file_path = os.path.join(args.home, 'data/2/inspired2/train_pred_aug_dataset_inspired2_new2_final.pkl')
         train_dataset_pred_aug = pickle.load(open(file=train_file_path, mode='rb'))
 
-        test_file_path = os.path.join(args.home, 'data/2/inspired2/test_pred_aug_dataset_inspired_new.pkl')
+        test_file_path = os.path.join(args.home, 'data/2/inspired2/test_pred_aug_dataset_inspired2_new2.pkl')
         test_dataset_pred_aug = pickle.load(open(file=test_file_path, mode='rb'))
     
     if args.LM_selection:
